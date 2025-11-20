@@ -1,4 +1,4 @@
-# JSON Java Objectifier
+# Jsonic - JSON Java Objectifier
 
 A Java library for parsing, validating, and manipulating JSON data with strong type safety and customizable object structures.
 
@@ -101,7 +101,7 @@ String formatted = JSONStringifier.stringifyJson(obj);  // Returns formatted JSO
 ## Building from Source
 
 ```bash
-git clone https://github.com/stevenlagoy/json-java-objectifier.git
+git clone https://github.com/stevenlagoy/Jsonic.git
 cd json-java-objectifier
 mvn clean install
 ```

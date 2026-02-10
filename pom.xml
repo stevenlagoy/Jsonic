@@ -2,18 +2,31 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.github.stevenlagoy</groupId>
-    <artifactId>json-java-objectifier</artifactId>
-    <version>1.0.6a</version>
+    <groupId>io.github.stevenlagoy</groupId>
+    <artifactId>jsonic-json-java-objectifier</artifactId>
+    <version>1.0.7</version>
     <packaging>jar</packaging>
-    <name>JSON Java Objectifier</name>
+    <name>Jsonic: JSON Java Objectifier</name>
     <description>Java tools for converting JSON into typed object structures</description>
-    <url>https://github.com/stevenlagoy/json-java-objectifier</url>
+    <url>https://github.com/stevenlagoy/Jsonic</url>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
     </properties>
+
+    <scm>
+        <connection>scm:git:git://github.com/stevenlagoy/Jsonic.git</connection>
+        <developerConnection>scm:git:ssh/github.com/stevenlagoy/stevenlagoy.git</developerConnection>
+        <url>https://github.com/stevenlagoy/Jsonic</url>
+    </scm>
+
+    <developers>
+        <developer>
+            <id>stevenlagoy</id>
+            <name>Steven LaGoy</name>
+        </developer>
+    </developers>
 
     <dependencies>
         <!-- JSON library -->
@@ -44,6 +57,20 @@
         <testSourceDirectory>src/tests/java</testSourceDirectory>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>3.0.1</version>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>net.revelc.code.formatter</groupId>
                 <artifactId>formatter-maven-plugin</artifactId>
                 <version>2.22.0</version>
@@ -69,11 +96,6 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>net.revelc.code.formatter</groupId>
-                <artifactId>formatter-maven-plugin</artifactId>
-                <version>2.22.0</version>
             </plugin>
             <plugin>
                 <groupId>com.github.spotbugs</groupId>
@@ -102,4 +124,17 @@
             </plugin>
         </plugins>
     </build>
+
+    <distributionManagement>
+        <repository>
+            <id>ossrh</id>
+            <name>OSSRH Staging</name>
+            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <name>OSSRH Snapshots</name>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
+        </snapshotRepository>
+    </distributionManagement>
 </project>

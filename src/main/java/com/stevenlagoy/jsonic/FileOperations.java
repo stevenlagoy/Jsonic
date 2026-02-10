@@ -1,4 +1,4 @@
-package core;
+package com.stevenlagoy.jsonic;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -45,7 +45,8 @@ public class FileOperations {
     /**
      * Returns a Set of Paths for all the files in the specified directory.
      * <p>
-     * Equivalent to {@link FileOperations#listFiles(Path, FileExtension) listFiles(dir, FileExtension.ALL)}
+     * Equivalent to {@link FileOperations#listFiles(Path, FileExtension)
+     * listFiles(dir, FileExtension.ALL)}
      *
      * @param dir
      *            The path to the directory to list the files within
@@ -53,7 +54,7 @@ public class FileOperations {
      * @return A Set of Paths to each file within the directory
      *
      * @throws IOException
-     *             If the directory path is invalid or unable to be located
+     *                     If the directory path is invalid or unable to be located
      *
      * @see FileExtension#ALL
      */
@@ -67,17 +68,19 @@ public class FileOperations {
     }
 
     /**
-     * Returns a Set of Paths for all the files in the specificed directory with the given extension.
+     * Returns a Set of Paths for all the files in the specificed directory with the
+     * given extension.
      *
      * @param dir
-     *            The path to the directory to list the files within.
+     *                  The path to the directory to list the files within.
      * @param extension
-     *            A FileOperations.FileExtension to filter the Path results by.
+     *                  A FileOperations.FileExtension to filter the Path results
+     *                  by.
      *
      * @return A Set of Paths to each file within the directory with the extension.
      *
      * @throws IOException
-     *             If the directory path is invalid or unable to be located.
+     *                     If the directory path is invalid or unable to be located.
      */
     public static Set<Path> listFiles(Path dir, FileExtension extension) throws IOException {
         if (dir == null) {
@@ -94,7 +97,8 @@ public class FileOperations {
                     continue; // Skip null paths
                 }
                 Path fileName = path.getFileName();
-                if (fileName == null) return null;
+                if (fileName == null)
+                    return null;
                 if (!Files.isDirectory(path) && !FilePaths.IGNORED_FILES.contains(fileName.toString())
                         && fileName.endsWith(extension.getExtension())) {
                     pathSet.add(dir.resolve(fileName));
@@ -152,7 +156,8 @@ public class FileOperations {
             if (!file.createNewFile() && !file.exists()) {
                 throw new IOException("Failed to create new file: " + file.getAbsolutePath());
             }
-            try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(file, false), StandardCharsets.UTF_8)) {
+            try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(file, false),
+                    StandardCharsets.UTF_8)) {
                 for (String line : content) {
                     writer.write(line + "\n");
                 }

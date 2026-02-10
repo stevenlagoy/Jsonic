@@ -1,37 +1,38 @@
-package core;
+package com.stevenlagoy.jsonic;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
 public class JSONStringifier {
-    
+
     /*
      * JSON BNF Grammar
-     * <json>       ::= <value>
-     * <value>      ::= <string> | <number> | <object> | <array> | true | false | null
+     * <json> ::= <value>
+     * <value> ::= <string> | <number> | <object> | <array> | true | false | null
      *
-     * <object>     ::= { } | { <members> }
-     * <members>    ::= <pair> | <pair> , <members>
-     * <pair>       ::= <string> : <value>
-     *                  semantics rule: <string> must be unique within its level
+     * <object> ::= { } | { <members> }
+     * <members> ::= <pair> | <pair> , <members>
+     * <pair> ::= <string> : <value>
+     * semantics rule: <string> must be unique within its level
      *
-     * <array>      ::= [ ] | [ <elements> ]
-     * <elements>   ::= <value> | <value> , <elements>
+     * <array> ::= [ ] | [ <elements> ]
+     * <elements> ::= <value> | <value> , <elements>
      *
-     * <string>     ::= " <characters> "
+     * <string> ::= " <characters> "
      * <characters> ::= <character> | <character> <characters>
-     * <character>  ::= # any unicode character except " or \ or control characters # | <escape>
+     * <character> ::= # any unicode character except " or \ or control characters #
+     * | <escape>
      *
-     * <escape>     ::= \ (" | \ | / | b | f | n | r | t | u <hex><hex><hex><hex>)
+     * <escape> ::= \ (" | \ | / | b | f | n | r | t | u <hex><hex><hex><hex>)
      *
-     * <number>     ::= <int> <frac>? <exp>?
-     * <int>        ::= -? <digits>
-     * <frac>       ::= . <digits>
-     * <exp>        ::= (e | E) (+ | -)? <digits>
-     * <digits>     ::= <digit> | <digit> <digits>
-     * <digit>      ::= # digit from 0 to 9 #
-     * <hex>        ::= <digit> | [a-f] | [A-F]
+     * <number> ::= <int> <frac>? <exp>?
+     * <int> ::= -? <digits>
+     * <frac> ::= . <digits>
+     * <exp> ::= (e | E) (+ | -)? <digits>
+     * <digits> ::= <digit> | <digit> <digits>
+     * <digit> ::= # digit from 0 to 9 #
+     * <hex> ::= <digit> | [a-f] | [A-F]
      */
 
     public static String stringifyJson(JSONObject json) {
@@ -53,20 +54,27 @@ public class JSONStringifier {
         }
         return stringifyValue(value);
     }
+
     public static String stringifyValue(Object value) {
-        if (value instanceof String) return "\"" + stringifyEscape((String) value) + "\"";
-        else if (value instanceof Number || value instanceof Boolean) return value.toString();
-        else if (value instanceof Jsonic) return "\"" + ((Jsonic) value).toJson().toString() + "\"";
-        else if (value.getClass() == Object.class) return "null"; // Only Object, not subclass
-        else return "\"" + value.toString() + "\"";
+        if (value instanceof String)
+            return "\"" + stringifyEscape((String) value) + "\"";
+        else if (value instanceof Number || value instanceof Boolean)
+            return value.toString();
+        else if (value instanceof Jsonic)
+            return "\"" + ((Jsonic) value).toJson().toString() + "\"";
+        else if (value.getClass() == Object.class)
+            return "null"; // Only Object, not subclass
+        else
+            return "\"" + value.toString() + "\"";
     }
 
     public static String stringifyObject(JSONObject object) {
-        if (object == null) return "{}";
-        
+        if (object == null)
+            return "{}";
+
         StringBuilder sb = new StringBuilder();
         sb.append("{");
-        
+
         sb.append(stringifyValue(object.getKey()));
         sb.append(" : ");
 
@@ -82,16 +90,15 @@ public class JSONStringifier {
             for (int i = 0; i < objects.size(); i++) {
                 String nested = stringifyObject(objects.get(i));
                 sb.append(nested.substring(1, nested.length() - 1));
-                if (i < objects.size() - 1) sb.append(", ");
+                if (i < objects.size() - 1)
+                    sb.append(", ");
             }
             sb.append("}");
-        }
-        else if (type != null && value instanceof JSONObject json) {
+        } else if (type != null && value instanceof JSONObject json) {
             sb.append("{");
             sb.append(json.toString());
             sb.append("}");
-        }
-        else if (type != null)
+        } else if (type != null)
             sb.append(stringifyValue(value, type));
         else
             sb.append(stringifyValue(value));
@@ -102,14 +109,16 @@ public class JSONStringifier {
     }
 
     public static String stringifyArray(List<?> array) {
-        if (array == null || array.isEmpty()) return "[]";
+        if (array == null || array.isEmpty())
+            return "[]";
 
         StringBuilder sb = new StringBuilder();
         sb.append("[");
         Iterator<?> it = array.iterator();
         while (it.hasNext()) {
             sb.append(stringifyValue(it.next()));
-            if (it.hasNext()) sb.append(", ");
+            if (it.hasNext())
+                sb.append(", ");
         }
         sb.append("]");
 
@@ -118,13 +127,13 @@ public class JSONStringifier {
 
     public static String stringifyEscape(String escape) {
         return escape
-            .replace("\\", "\\\\")
-            .replace("\"", "\\\"")
-            .replace("\b", "\\b")
-            .replace("\f", "\\f")
-            .replace("\n", "\\n")
-            .replace("\r", "\\r")
-            .replace("\t", "\\t");
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\b", "\\b")
+                .replace("\f", "\\f")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
     }
 
     public static List<String> expandJson(String json) {
@@ -141,18 +150,18 @@ public class JSONStringifier {
                 continue;
             }
             switch (c) {
-                case '"' :
+                case '"':
                     currentLine.append(c);
                     break;
-                case '{' :
-                case '[' :
+                case '{':
+                case '[':
                     currentLine.append(c);
                     result.add(tab.repeat(indentation) + currentLine);
                     currentLine = new StringBuilder();
                     indentation++;
                     break;
-                case '}' :
-                case ']' :
+                case '}':
+                case ']':
                     if (currentLine.length() > 0) {
                         result.add(tab.repeat(indentation) + currentLine);
                         currentLine = new StringBuilder();
@@ -161,19 +170,18 @@ public class JSONStringifier {
                     if (i + 1 < json.length() && json.charAt(i + 1) == ',') {
                         result.add(tab.repeat(indentation) + c + ",");
                         i++;
-                    }
-                    else
+                    } else
                         result.add(tab.repeat(indentation) + c);
                     break;
-                case ',' :
+                case ',':
                     currentLine.append(c);
                     result.add(tab.repeat(indentation) + currentLine);
                     currentLine = new StringBuilder();
                     break;
-                case ':' :
+                case ':':
                     currentLine.append(" ").append(c).append(" ");
                     break;
-                default :
+                default:
                     if (!Character.isWhitespace(c)) {
                         currentLine.append(c);
                     }

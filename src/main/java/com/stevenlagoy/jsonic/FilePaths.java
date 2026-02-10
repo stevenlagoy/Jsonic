@@ -1,4 +1,4 @@
-package core;
+package com.stevenlagoy.jsonic;
 
 import java.util.List;
 import java.nio.file.Path;

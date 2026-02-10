@@ -1,4 +1,4 @@
-package core;
+package com.stevenlagoy.jsonic;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -10,37 +10,40 @@ public class JSONProcessor {
 
     /*
      * JSON BNF Grammar
-     * <json>       ::= <value>
-     * <value>      ::= <string> | <number> | <object> | <array> | true | false | null
+     * <json> ::= <value>
+     * <value> ::= <string> | <number> | <object> | <array> | true | false | null
      *
-     * <object>     ::= { } | { <members> }
-     * <members>    ::= <pair> | <pair> , <members>
-     * <pair>       ::= <string> : <value>
-     *                  semantics rule: <string> must be unique within its level
+     * <object> ::= { } | { <members> }
+     * <members> ::= <pair> | <pair> , <members>
+     * <pair> ::= <string> : <value>
+     * semantics rule: <string> must be unique within its level
      *
-     * <array>      ::= [ ] | [ <elements> ]
-     * <elements>   ::= <value> | <value> , <elements>
+     * <array> ::= [ ] | [ <elements> ]
+     * <elements> ::= <value> | <value> , <elements>
      *
-     * <string>     ::= " <characters> "
+     * <string> ::= " <characters> "
      * <characters> ::= <character> | <character> <characters>
-     * <character>  ::= # any unicode character except " or \ or control characters # | <escape>
+     * <character> ::= # any unicode character except " or \ or control characters #
+     * | <escape>
      *
-     * <escape>     ::= \ (" | \ | / | b | f | n | r | t | u <hex><hex><hex><hex>)
+     * <escape> ::= \ (" | \ | / | b | f | n | r | t | u <hex><hex><hex><hex>)
      *
-     * <number>     ::= <int> <frac>? <exp>?
-     * <int>        ::= -? <digits>
-     * <frac>       ::= . <digits>
-     * <exp>        ::= (e | E) (+ | -)? <digits>
-     * <digits>     ::= <digit> | <digit> <digits>
-     * <digit>      ::= # digit from 0 to 9 #
-     * <hex>        ::= <digit> | [a-f] | [A-F]
+     * <number> ::= <int> <frac>? <exp>?
+     * <int> ::= -? <digits>
+     * <frac> ::= . <digits>
+     * <exp> ::= (e | E) (+ | -)? <digits>
+     * <digits> ::= <digit> | <digit> <digits>
+     * <digit> ::= # digit from 0 to 9 #
+     * <hex> ::= <digit> | [a-f] | [A-F]
      */
 
     public static JSONObject processJson(Path path) {
-        if (path == null) return null;
+        if (path == null)
+            return null;
         List<String> contents = FileOperations.readFile(path);
         Path fileName = path.getFileName();
-        if (fileName == null) return null;
+        if (fileName == null)
+            return null;
         String key = fileName.toString().split("\\.")[0];
         return processJson(key, contents);
     }
@@ -57,7 +60,8 @@ public class JSONProcessor {
     }
 
     /**
-     * Processes a JSON string by normalizing whitespace and validating the object structure.
+     * Processes a JSON string by normalizing whitespace and validating the object
+     * structure.
      * <p>
      * This method processes a JSON string by:
      * <ol>
@@ -66,11 +70,13 @@ public class JSONProcessor {
      * <li>Validating the resulting string as a JSON object</li>
      * </ol>
      * <p>
-     * The input must represent a valid JSON value containing at least one of the following:
+     * The input must represent a valid JSON value containing at least one of the
+     * following:
      * <ul>
      * <li>String: Characters surrounded by double quotes
      * <li>Number: Number with integer and possible fraction and/or exponent part
-     * <li>Object: Key-Value pairs separated by commas, all surrouned by curly braces { }
+     * <li>Object: Key-Value pairs separated by commas, all surrouned by curly
+     * braces { }
      * <li>Array: Values separated by commas, all surrounded by square brackets [ ]
      * <li>true
      * <li>false
@@ -78,9 +84,10 @@ public class JSONProcessor {
      * </ul>
      *
      * @param jsonLine
-     *            The JSON string to process (may contain newlines)
+     *                 The JSON string to process (may contain newlines)
      *
-     * @return {@code true} if the string represents a valid JSON object, {@code false} otherwise
+     * @return {@code true} if the string represents a valid JSON object,
+     *         {@code false} otherwise
      *
      * @see JSONValidator#processObject(String)
      */
@@ -99,9 +106,11 @@ public class JSONProcessor {
      * </pre>
      *
      * @param objectLine
-     *            The line containing the full object to process (must not be null or empty or blank)
+     *                   The line containing the full object to process (must not be
+     *                   null or empty or blank)
      *
-     * @return {@code true} if the object is successfully processed, {@code false} otherwise
+     * @return {@code true} if the object is successfully processed, {@code false}
+     *         otherwise
      */
     public static List<JSONObject> processObject(String objectLine) {
         if (objectLine == null)
@@ -127,9 +136,10 @@ public class JSONProcessor {
      * </pre>
      *
      * @param membersLine
-     *            The line contining the full members to process
+     *                    The line contining the full members to process
      *
-     * @return {@code true} if the members are successfully processed, {@code false} otherwise
+     * @return {@code true} if the members are successfully processed, {@code false}
+     *         otherwise
      */
     public static List<JSONObject> processMembers(String membersLine) {
         if (membersLine == null)
@@ -168,9 +178,11 @@ public class JSONProcessor {
      * </pre>
      *
      * @param pairLine
-     *            The line contining the full pair to process (must not be null or empty or blank)
+     *                 The line contining the full pair to process (must not be null
+     *                 or empty or blank)
      *
-     * @return {@code true} if the pair is successfully processed, {@code false} otherwise
+     * @return {@code true} if the pair is successfully processed, {@code false}
+     *         otherwise
      */
     public static JSONObject processPair(String pairLine) {
         if (pairLine == null)
@@ -202,9 +214,11 @@ public class JSONProcessor {
      * </pre>
      *
      * @param arrayLine
-     *            The line contining the full array to process (may not be null or empty or blank)
+     *                  The line contining the full array to process (may not be
+     *                  null or empty or blank)
      *
-     * @return {@code true} if the array is successfully processed, {@code false} otherwise
+     * @return {@code true} if the array is successfully processed, {@code false}
+     *         otherwise
      */
     public static List<Object> processArray(String arrayLine) {
         if (arrayLine == null)
@@ -230,9 +244,11 @@ public class JSONProcessor {
      * </pre>
      *
      * @param elementsLine
-     *            The line contining the full elements to process (must not be null or empty or blank)
+     *                     The line contining the full elements to process (must not
+     *                     be null or empty or blank)
      *
-     * @return {@code true} if the elements are successfully processed, {@code false} otherwise
+     * @return {@code true} if the elements are successfully processed,
+     *         {@code false} otherwise
      */
     public static List<Object> processElements(String elementsLine) {
         if (elementsLine == null)
@@ -261,9 +277,11 @@ public class JSONProcessor {
      * </pre>
      *
      * @param valueLine
-     *            The line contining the full value to process (may not be null or empty or blank)
+     *                  The line contining the full value to process (may not be
+     *                  null or empty or blank)
      *
-     * @return {@code true} if the value is successfully processed, {@code false} otherwise
+     * @return {@code true} if the value is successfully processed, {@code false}
+     *         otherwise
      */
     public static Object processValue(String valueLine) {
         if (valueLine == null)
@@ -303,9 +321,11 @@ public class JSONProcessor {
      * </pre>
      *
      * @param stringLine
-     *            The line contining the full string to process (may not be null or empty, but may be blank)
+     *                   The line contining the full string to process (may not be
+     *                   null or empty, but may be blank)
      *
-     * @return {@code true} if the string is successfully processed, {@code false} otherwise
+     * @return {@code true} if the string is successfully processed, {@code false}
+     *         otherwise
      */
     public static String processString(String stringLine) {
         if (stringLine == null)
@@ -331,9 +351,11 @@ public class JSONProcessor {
      * </pre>
      *
      * @param charactersLine
-     *            The line contining the full characters to process (must not be null or empty, but may be blank)
+     *                       The line contining the full characters to process (must
+     *                       not be null or empty, but may be blank)
      *
-     * @return {@code true} if the characters are successfully processed, {@code false} otherwise
+     * @return {@code true} if the characters are successfully processed,
+     *         {@code false} otherwise
      */
     public static String processCharacters(String charactersLine) {
         if (charactersLine == null)
@@ -384,9 +406,11 @@ public class JSONProcessor {
      * </pre>
      *
      * @param characterLine
-     *            The line contining the full character to process (must not be null)
+     *                      The line contining the full character to process (must
+     *                      not be null)
      *
-     * @return {@code true} if the character is successfully processed, {@code false} otherwise
+     * @return {@code true} if the character is successfully processed,
+     *         {@code false} otherwise
      */
     public static String processCharacter(String characterLine) {
         if (characterLine == null)
@@ -418,9 +442,11 @@ public class JSONProcessor {
      * </pre>
      *
      * @param escapeLine
-     *            The line contining the full escape to process (must not be null or empty or blank)
+     *                   The line contining the full escape to process (must not be
+     *                   null or empty or blank)
      *
-     * @return {@code true} if the escape is successfully processed, {@code false} otherwise
+     * @return {@code true} if the escape is successfully processed, {@code false}
+     *         otherwise
      */
     public static String processEscape(String escapeLine) {
         if (escapeLine == null)
@@ -439,15 +465,15 @@ public class JSONProcessor {
             return new String(Character.toChars(codePoint));
         }
         return switch (escapeLine.charAt(1)) {
-        case '"' -> "\"";
-        case '\\' -> "\\";
-        case '/' -> "/";
-        case 'b' -> "\b";
-        case 'f' -> "\f";
-        case 'n' -> "\n";
-        case 'r' -> "\r";
-        case 't' -> "\t";
-        default -> null;
+            case '"' -> "\"";
+            case '\\' -> "\\";
+            case '/' -> "/";
+            case 'b' -> "\b";
+            case 'f' -> "\f";
+            case 'n' -> "\n";
+            case 'r' -> "\r";
+            case 't' -> "\t";
+            default -> null;
         };
     }
 
@@ -460,9 +486,11 @@ public class JSONProcessor {
      * </pre>
      *
      * @param numberLine
-     *            The line contining the full number to process (must not be null or empty or blank)
+     *                   The line contining the full number to process (must not be
+     *                   null or empty or blank)
      *
-     * @return {@code true} if the number is successfully processed, {@code false} otherwise
+     * @return {@code true} if the number is successfully processed, {@code false}
+     *         otherwise
      */
     public static Number processNumber(String numberLine) {
         if (numberLine == null)
@@ -519,9 +547,11 @@ public class JSONProcessor {
      * </pre>
      *
      * @param intLine
-     *            The line contining the full int to process (must not be null or empty or blank)
+     *                The line contining the full int to process (must not be null
+     *                or empty or blank)
      *
-     * @return {@code true} if the int is successfully processed, {@code false} otherwise
+     * @return {@code true} if the int is successfully processed, {@code false}
+     *         otherwise
      */
     public static Integer processInt(String intLine) {
         if (intLine == null)
@@ -544,9 +574,11 @@ public class JSONProcessor {
      * </pre>
      *
      * @param fracLine
-     *            The line contining the full frac to process (must not be null or empty or blank)
+     *                 The line contining the full frac to process (must not be null
+     *                 or empty or blank)
      *
-     * @return {@code true} if the frac is successfully processed, {@code false} otherwise
+     * @return {@code true} if the frac is successfully processed, {@code false}
+     *         otherwise
      */
     public static Double processFrac(String fracLine) {
         if (fracLine == null)
@@ -571,9 +603,11 @@ public class JSONProcessor {
      * </pre>
      *
      * @param expLine
-     *            The line contining the full exp to process (must not be null or empty or blank)
+     *                The line contining the full exp to process (must not be null
+     *                or empty or blank)
      *
-     * @return {@code true} if the exp is successfully processed, {@code false} otherwise
+     * @return {@code true} if the exp is successfully processed, {@code false}
+     *         otherwise
      */
     public static Integer processExp(String expLine) {
         if (expLine == null)
@@ -600,7 +634,8 @@ public class JSONProcessor {
      * </pre>
      *
      * @param digitsLine
-     *            The line contining the full digits to process (must not be null or empty or blank)
+     *                   The line contining the full digits to process (must not be
+     *                   null or empty or blank)
      *
      * @return The decimal value of the digits, or {@code -1} if invalid
      */
@@ -631,7 +666,7 @@ public class JSONProcessor {
      * </pre>
      *
      * @param digit
-     *            The digit character to process
+     *              The digit character to process
      *
      * @return The decimal value of the digit, or {@code -1} if invalid
      */

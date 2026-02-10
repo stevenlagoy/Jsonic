@@ -30,3 +30,4 @@ target/
 !src/tests/java/data/**/*.out
 
 *.txt
+*.env

@@ -16,10 +16,27 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
 
+/** FileOperations provides utilities for working with files. */
 public class FileOperations {
 
+    private FileOperations() {
+    }
+
+    /**
+     * Enum for File Extensions, useful for clearing or listing files in a
+     * directory, as well as reading or writing to/from a certain type of file.
+     */
     public static enum FileExtension {
-        ALL(""), HTML(".html"), JSON(".json"), JAVA(".java"), TEXT(".txt");
+        /** Blank extension */
+        ALL(""),
+        /** Extension for HTML files */
+        HTML(".html"),
+        /** Extension for JSON files */
+        JSON(".json"),
+        /** Extension for Java files */
+        JAVA(".java"),
+        /** Extension for text files */
+        TEXT(".txt");
 
         private final String extension;
 
@@ -27,16 +44,44 @@ public class FileOperations {
             this.extension = extension != null ? extension : "";
         }
 
+        /**
+         * Get the extension string for this FileExtension.
+         * 
+         * @return String extension, containing a dot '.' followed by valid extension
+         *         characters.
+         */
         public String getExtension() {
             return extension;
         }
     }
 
+    /**
+     * ScannerUtil is a scanner that can read from an InputStream, which wraps
+     * java.util.Scanner.
+     */
     public static class ScannerUtil {
+
+        private ScannerUtil() {
+        }
+
+        /**
+         * Create a scanner which reads from the given inputStream.
+         * 
+         * @param inputStream Input Stream which the created scanner can read from.
+         * @return New scanner which reads from the Input Stream.
+         */
         public static Scanner createScanner(InputStream inputStream) {
             return new Scanner(inputStream, StandardCharsets.UTF_8);
         }
 
+        /**
+         * Create a scanner which can read from the given file.
+         * 
+         * @param file File the scanner will read from.
+         * @return New scanner which reads from the file.
+         * @throws IOException When the file does not exist, lacks permissions, or is
+         *                     being used by another blocking process.
+         */
         public static Scanner createScanner(File file) throws IOException {
             return new Scanner(file, StandardCharsets.UTF_8);
         }
@@ -99,7 +144,7 @@ public class FileOperations {
                 Path fileName = path.getFileName();
                 if (fileName == null)
                     return null;
-                if (!Files.isDirectory(path) && !FilePaths.IGNORED_FILES.contains(fileName.toString())
+                if (!Files.isDirectory(path)
                         && fileName.endsWith(extension.getExtension())) {
                     pathSet.add(dir.resolve(fileName));
                 }
@@ -111,6 +156,15 @@ public class FileOperations {
         }
     }
 
+    /**
+     * Empty a directory of all files with the passed extension.
+     * 
+     * @param dir       Directory to empty.
+     * @param extension Extension for files which should be deleted.
+     * @throws IOException When the file could not be deleted, either because it
+     *                     does not exist, lacks permissions, or is being read by
+     *                     another process.
+     */
     public static void emptyFiles(Path dir, String extension) throws IOException {
         Set<Path> paths = listFiles(dir); // does not include ignored files
         for (Path path : paths) {
@@ -126,6 +180,12 @@ public class FileOperations {
         }
     }
 
+    /**
+     * Read the file with the given path.
+     * 
+     * @param path Path to the file to read
+     * @return List of Strings for the lines in the file.
+     */
     public static List<String> readFile(Path path) {
         try {
             Scanner scanner = ScannerUtil.createScanner(path.toFile());
@@ -140,16 +200,40 @@ public class FileOperations {
         }
     }
 
-    public static void writeFile(String filename, String extension, Path destination, String content) {
-        writeFile(filename, extension, destination, Collections.singletonList(content));
+    /**
+     * Write to a file with the given name, extension, directory, and containing the
+     * passed content.
+     * 
+     * @param filename  Name of the file to write into.
+     * @param extension Extension of the file to write into.
+     * @param dir       Directory for the location of the file.
+     * @param content   The String content to be written into the file.
+     */
+    public static void writeFile(String filename, String extension, Path dir, String content) {
+        writeFile(filename, extension, dir, Collections.singletonList(content));
     }
 
-    public static void writeFile(String filename, String extension, Path destination, List<String> content) {
-        Path filePath = destination.resolve(filename + extension);
+    /**
+     * Write to a file with the given name, extension, directory, and containing the
+     * passed content.
+     * 
+     * @param filename  Name of the file to write into.
+     * @param extension Extension of the file to write into.
+     * @param dir       Directory for the location of the file.
+     * @param content   The Strings content to be written into the file.
+     */
+    public static void writeFile(String filename, String extension, Path dir, List<String> content) {
+        Path filePath = dir.resolve(filename + extension);
         File file = filePath.toFile();
         writeFile(file, content);
     }
 
+    /**
+     * Write to the passed file with the passed content.
+     * 
+     * @param file    File to write into. Will be cleared before writing.
+     * @param content Content to write into the file.
+     */
     public static void writeFile(File file, List<String> content) {
         try {
             Files.createDirectories(file.getParentFile().toPath());

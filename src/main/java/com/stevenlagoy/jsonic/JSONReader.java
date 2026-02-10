@@ -6,7 +6,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
+/**
+ * JSONReader reads a JSON file and returns its lines. Used with JSONProcessor.
+ */
 public class JSONReader {
+
+    private JSONReader() {
+    }
 
     /**
      * Reads a JSON file and returns its contents as a List of Strings.

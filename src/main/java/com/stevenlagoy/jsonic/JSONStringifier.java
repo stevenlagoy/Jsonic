@@ -4,7 +4,13 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+/**
+ * JSONStringifier provides utilities for turning a JSONObject into a String.
+ */
 public class JSONStringifier {
+
+    private JSONStringifier() {
+    }
 
     /*
      * JSON BNF Grammar
@@ -35,11 +41,24 @@ public class JSONStringifier {
      * <hex> ::= <digit> | [a-f] | [A-F]
      */
 
+    /**
+     * Turns the passed JSONObject into a string representation.
+     * 
+     * @param json JSONObject to Stringify.
+     * @return Expanded String representation of the JSONObject.
+     */
     public static String stringifyJson(JSONObject json) {
         String result = stringifyObject(json.getAsObject());
         return result.substring(1, result.length() - 1);
     }
 
+    /**
+     * Stringify one JSON value.
+     * 
+     * @param value Value to stringify.
+     * @param type  Known type of the value being stringified.
+     * @return String representation of the value.
+     */
     public static String stringifyValue(Object value, Class<?> type) {
         if (type.equals(JSONObject.class)) {
             @SuppressWarnings("unchecked") // The type of this object is known from the type parameter
@@ -55,6 +74,12 @@ public class JSONStringifier {
         return stringifyValue(value);
     }
 
+    /**
+     * Stringify one JSON value.
+     * 
+     * @param value Value to stringify.
+     * @return String representation of the value.
+     */
     public static String stringifyValue(Object value) {
         if (value instanceof String)
             return "\"" + stringifyEscape((String) value) + "\"";
@@ -68,6 +93,12 @@ public class JSONStringifier {
             return "\"" + value.toString() + "\"";
     }
 
+    /**
+     * Stringifies one JSON object.
+     * 
+     * @param object JSONObject to stringify.
+     * @return String representation of the JSON object.
+     */
     public static String stringifyObject(JSONObject object) {
         if (object == null)
             return "{}";
@@ -108,6 +139,12 @@ public class JSONStringifier {
         return sb.toString();
     }
 
+    /**
+     * Stringifies one JSON array (List).
+     * 
+     * @param array JSON array to stringify.
+     * @return String representation of the array.
+     */
     public static String stringifyArray(List<?> array) {
         if (array == null || array.isEmpty())
             return "[]";
@@ -125,6 +162,13 @@ public class JSONStringifier {
         return sb.toString();
     }
 
+    /**
+     * Stringifies escape character(s) to make them printable.
+     * 
+     * @param escape Escape character(s) to make printable.
+     * @return Escaped escape characters in the order they appeared in the original
+     *         string.
+     */
     public static String stringifyEscape(String escape) {
         return escape
                 .replace("\\", "\\\\")
@@ -136,6 +180,12 @@ public class JSONStringifier {
                 .replace("\t", "\\t");
     }
 
+    /**
+     * Expands json with newlines and tab characters where appropriate.
+     * 
+     * @param json String representing JSON which can be expanded.
+     * @return Expanded form of the JSON string in a List of Strings.
+     */
     public static List<String> expandJson(String json) {
         List<String> result = new ArrayList<>();
         int indentation = 0;

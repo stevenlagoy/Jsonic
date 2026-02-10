@@ -5,7 +5,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
 
+/** JSONValidator determines the validity of a JSON file. */
 public class JSONValidator {
+
+    private JSONValidator() {
+    }
 
     /*
      * JSON BNF Grammar
@@ -36,11 +40,24 @@ public class JSONValidator {
      * <hex> ::= <digit> | [a-f] | [A-F]
      */
 
+    /**
+     * Determines whether the JSON file with the given path is valid.
+     * 
+     * @param path Path to a file.
+     * @return {@code true} if valid, {@code false} otherwise.
+     */
     public static boolean validateJson(Path path) {
         List<String> contents = FileOperations.readFile(path);
         return validateJson(contents);
     }
 
+    /**
+     * Determines whether the JSON data represented by the passed String Iterator is
+     * valid.
+     * 
+     * @param contents Iterable collection of Strings.
+     * @return {@code true} if valid, {@code false} otherwise.
+     */
     public static boolean validateJson(Iterable<String> contents) {
         if (contents == null)
             return false;
@@ -55,14 +72,12 @@ public class JSONValidator {
     /**
      * Validates a JSON string by normalizing whitespace and validating the object
      * structure.
-     * <p>
      * This method processes a JSON string by:
      * <ol>
      * <li>Replacing all newlines outside of strings with spaces</li>
      * <li>Trimming leading and trailing whitespace</li>
      * <li>Validating the resulting string as a JSON object</li>
      * </ol>
-     * <p>
      * The input must represent a valid JSON value containing at least one of the
      * following:
      * <ul>
@@ -92,7 +107,6 @@ public class JSONValidator {
 
     /**
      * Validates an Object.
-     * <p>
      *
      * <pre>
      * &lt;object&gt; ::= { } | { &lt;members&gt; }
@@ -122,7 +136,6 @@ public class JSONValidator {
 
     /**
      * Validates members
-     * <p>
      *
      * <pre>
      * &lt;members&gt; ::= &lt;pair&gt; | &lt;pair&gt; , &lt;members&gt;
@@ -161,7 +174,6 @@ public class JSONValidator {
 
     /**
      * Validates pair
-     * <p>
      *
      * <pre>
      * &lt;pair&gt; ::= &lt;string&gt; : &lt;value&gt;
@@ -196,7 +208,6 @@ public class JSONValidator {
 
     /**
      * Validates array
-     * <p>
      *
      * <pre>
      * &lt;array&gt; ::= [ ] | [ &lt;elements&gt; ]
@@ -226,7 +237,6 @@ public class JSONValidator {
 
     /**
      * Validates elements
-     * <p>
      *
      * <pre>
      * &lt;elements&gt; ::= &lt;value&gt; | &lt;value&gt; , &lt;elements&gt;
@@ -256,7 +266,6 @@ public class JSONValidator {
 
     /**
      * Validates value
-     * <p>
      *
      * <pre>
      * &lt;value&gt; ::= &lt;string&gt; | &lt;number&gt; | &lt;object&gt; | &lt;array&gt; | true | false | null
@@ -284,7 +293,6 @@ public class JSONValidator {
 
     /**
      * Validates string
-     * <p>
      *
      * <pre>
      * &lt;string&gt; ::= " " | " &lt;characters&gt; "
@@ -314,7 +322,6 @@ public class JSONValidator {
 
     /**
      * Validates characters
-     * <p>
      *
      * <pre>
      * &lt;characters&gt; ::= &lt;character&gt; | &lt;character&gt; &lt;characters&gt;
@@ -363,7 +370,6 @@ public class JSONValidator {
 
     /**
      * Validates character
-     * <p>
      *
      * <pre>
      * &lt;character&gt; ::= # any unicode character except "" or \ or control characters # | &lt;escape&gt;
@@ -399,7 +405,6 @@ public class JSONValidator {
 
     /**
      * Validates escape character
-     * <p>
      *
      * <pre>
      * &lt;escape&gt; ::= \ (" | \ | / | b | f | n | r | t | u &lt;hex&gt;&lt;hex&gt;&lt;hex&gt;&lt;hex&gt;)
@@ -444,7 +449,6 @@ public class JSONValidator {
 
     /**
      * Validates number
-     * <p>
      *
      * <pre>
      * &lt;number&gt; ::= &lt;int&gt; &lt;frac&gt;? &lt;exp&gt;?
@@ -490,7 +494,6 @@ public class JSONValidator {
 
     /**
      * Validates integer
-     * <p>
      *
      * <pre>
      * &lt;int&gt; ::= -? &lt;digits&gt;
@@ -517,7 +520,6 @@ public class JSONValidator {
 
     /**
      * Validates fraction
-     * <p>
      *
      * <pre>
      * &lt;frac&gt; ::= . &lt;digits&gt;
@@ -546,7 +548,6 @@ public class JSONValidator {
 
     /**
      * Validates exponent
-     * <p>
      *
      * <pre>
      * &lt;exp&gt; ::= (e | E) (+ | -)? &lt;digits&gt;
@@ -577,7 +578,6 @@ public class JSONValidator {
 
     /**
      * Validates digits
-     * <p>
      *
      * <pre>
      * &lt;digits&gt; ::= &lt;digit&gt; | &lt;digit&gt; &lt;digits&gt;
@@ -605,7 +605,6 @@ public class JSONValidator {
 
     /**
      * Validates digit
-     * <p>
      *
      * <pre>
      * &lt;digit&gt; ::= # digit from 0 to 9 #
@@ -623,12 +622,11 @@ public class JSONValidator {
 
     /**
      * Validates hex
-     * <p>
-     *
+     * 
      * <pre>
      * &lt;hex&gt; ::= &lt;digit&gt; | [a-f] [A-F]
      * </pre>
-     *
+     * 
      * @param hex
      *            The hex to parse
      *

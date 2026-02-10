@@ -5,7 +5,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/** Util class for operations using Strings. */
 public class StringOperations {
+
+    private StringOperations() {
+    }
 
     /**
      * Determines whether a given position in a line of text is currently inside a
@@ -58,6 +62,7 @@ public class StringOperations {
 
     private static Map<String, Boolean[]> inStringCache;
 
+    /** Clear inStringCache */
     public static void clearInStringCache() {
         inStringCache = null;
     }
@@ -114,6 +119,9 @@ public class StringOperations {
 
     private static Map<String, Boolean[]> inArrayCache;
 
+    /**
+     * Clear inArrayCache
+     */
     public static void clearInArrayCache() {
         inStringCache = null;
     }
@@ -175,6 +183,7 @@ public class StringOperations {
 
     private static Map<String, Boolean[]> inObjectCache;
 
+    /** Clear inObjectCache */
     public static void clearInObjectCache() {
         inObjectCache = null;
     }
@@ -311,6 +320,7 @@ public class StringOperations {
 
     private static Map<Map<String, String>, String[]> splitByUnquotedCache;
 
+    /** Clear splitByUnquotedCache */
     public static void clearSplitByUnquotedCache() {
         splitByUnquotedCache = null;
     }
@@ -424,10 +434,21 @@ public class StringOperations {
 
     private static Map<Map<String, String>, String[]> splitByNotInArrayCache;
 
+    /** Clear splitByNotInArrayCache */
     public static void clearSplitByNotInArrayCache() {
         splitByNotInArrayCache = null;
     }
 
+    /**
+     * Split by the passed string where it appears outside of any object (not
+     * surrounded by curly braces {@code {}}.
+     * 
+     * @param string    String to split
+     * 
+     * @param separator Separator used to split
+     * @return Array of String of of the original string split by the separator. The
+     *         separator will not be present unless inside an object {@code {}}.
+     */
     public static String[] splitByStringNotInObject(String string, String separator) {
         if (splitByNotInObjectCache == null)
             splitByNotInObjectCache = new HashMap<>();
@@ -466,6 +487,7 @@ public class StringOperations {
 
     private static Map<Map<String, String>, String[]> splitByNotInObjectCache;
 
+    /** Clear splitByNotInObjectCache */
     public static void clearSplitByNotInObjectCache() {
         splitByNotInObjectCache = null;
     }
@@ -474,10 +496,10 @@ public class StringOperations {
      * Splits a string by a separator only when it is not inside an object or an
      * array.
      *
-     * @param string
-     * @param separator
+     * @param string    Input string to split
+     * @param separator String to use as separator
      *
-     * @return
+     * @return List of strings split from the input string based on the separator.
      */
     public static String[] splitByStringNotNested(String string, String separator) {
         if (splitByNotNestedCache == null)
@@ -517,6 +539,7 @@ public class StringOperations {
 
     private static Map<Map<String, String>, String[]> splitByNotNestedCache;
 
+    /** Clear splitByNotNestedCache */
     public static void clearSplitByNotNestedCache() {
         splitByNotNestedCache = null;
     }

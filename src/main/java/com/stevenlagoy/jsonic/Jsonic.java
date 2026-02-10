@@ -37,7 +37,8 @@ public interface Jsonic<T extends Jsonic<T>> {
     public T fromJson(JSONObject json);
 
     /**
-     * Turns a collection into a JSONObject list. Any elements which extend Jsonic<>
+     * Turns a collection into a JSONObject list. Any elements which extend
+     * Jsonic&lt;&gt;
      * will use their {@code .toJson()} methods,
      * and any other not-null elements will be passed to the
      * {@code Jsonic.toJson(Object)} function.
@@ -61,7 +62,8 @@ public interface Jsonic<T extends Jsonic<T>> {
     }
 
     /**
-     * Turns an array into a JSONObject list. Any elements which extend Jsonic<>
+     * Turns an array into a JSONObject list. Any elements which extend
+     * Jsonic&lt;&gt;
      * will use their {@code .toJson()} methods,
      * and any other not-null elements will be passed to the
      * {@code Jsonic.toJson(Object)} function.

@@ -6,7 +6,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
+/**
+ * JSONProcessor turns strings representing a valid JSON file into a JSONObject.
+ */
 public class JSONProcessor {
+
+    private JSONProcessor() {
+    }
 
     /*
      * JSON BNF Grammar
@@ -37,6 +43,12 @@ public class JSONProcessor {
      * <hex> ::= <digit> | [a-f] | [A-F]
      */
 
+    /**
+     * Process the data in the file with the given path into a JSONObject.
+     * 
+     * @param path Path to a JSONFile.
+     * @return JSONObject parsed from the file.
+     */
     public static JSONObject processJson(Path path) {
         if (path == null)
             return null;
@@ -48,6 +60,14 @@ public class JSONProcessor {
         return processJson(key, contents);
     }
 
+    /**
+     * Process the data in the String Iterable into a JSONObject, and give it the
+     * passed key.
+     * 
+     * @param key      The key to give to the parsed JSONObject.
+     * @param contents Data to parse into JSONObject
+     * @return The created JSONObject with the passed key.
+     */
     public static JSONObject processJson(String key, Iterable<String> contents) {
         if (contents == null)
             return null;
@@ -62,7 +82,6 @@ public class JSONProcessor {
     /**
      * Processes a JSON string by normalizing whitespace and validating the object
      * structure.
-     * <p>
      * This method processes a JSON string by:
      * <ol>
      * <li>Replacing all newlines outside of strings with spaces</li>
@@ -83,13 +102,12 @@ public class JSONProcessor {
      * <li>null
      * </ul>
      *
+     * @param key      Key of the new JSONObject.
      * @param jsonLine
-     *                 The JSON string to process (may contain newlines)
+     *                 The JSON string to process (may contain newlines).
      *
      * @return {@code true} if the string represents a valid JSON object,
-     *         {@code false} otherwise
-     *
-     * @see JSONValidator#processObject(String)
+     *         {@code false} otherwise.
      */
     public static JSONObject processJson(String key, String jsonLine) {
         String processed = StringOperations.replaceAllNotInString(jsonLine, "\n", " ").trim(); // Put the while
@@ -99,7 +117,6 @@ public class JSONProcessor {
 
     /**
      * Processes an Object.
-     * <p>
      *
      * <pre>
      * &lt;object&gt; ::= { } | { &lt;members&gt; }
@@ -129,7 +146,6 @@ public class JSONProcessor {
 
     /**
      * Processes members
-     * <p>
      *
      * <pre>
      * &lt;members&gt; ::= &lt;pair&gt; | &lt;pair&gt; , &lt;members&gt;
@@ -171,7 +187,6 @@ public class JSONProcessor {
 
     /**
      * Processes pair
-     * <p>
      *
      * <pre>
      * &lt;pair&gt; ::= &lt;string&gt; : &lt;value&gt;
@@ -207,7 +222,6 @@ public class JSONProcessor {
 
     /**
      * Processes array
-     * <p>
      *
      * <pre>
      * &lt;array&gt; ::= [ ] | [ &lt;elements&gt; ]
@@ -237,7 +251,6 @@ public class JSONProcessor {
 
     /**
      * Processes elements
-     * <p>
      *
      * <pre>
      * &lt;elements&gt; ::= &lt;value&gt; | &lt;value&gt; , &lt;elements&gt;
@@ -270,7 +283,6 @@ public class JSONProcessor {
 
     /**
      * Processes value
-     * <p>
      *
      * <pre>
      * &lt;value&gt; ::= &lt;string&gt; | &lt;number&gt; | &lt;object&gt; | &lt;array&gt; | true | false | null
@@ -314,7 +326,6 @@ public class JSONProcessor {
 
     /**
      * Processes string
-     * <p>
      *
      * <pre>
      * &lt;string&gt; ::= " " | " &lt;characters&gt; "
@@ -344,7 +355,6 @@ public class JSONProcessor {
 
     /**
      * Processes characters
-     * <p>
      *
      * <pre>
      * &lt;characters&gt; ::= &lt;character&gt; | &lt;character&gt; &lt;characters&gt;
@@ -399,7 +409,6 @@ public class JSONProcessor {
 
     /**
      * Processes character
-     * <p>
      *
      * <pre>
      * &lt;character&gt; ::= # any unicode character except "" or \ or control characters # | &lt;escape&gt;
@@ -435,7 +444,6 @@ public class JSONProcessor {
 
     /**
      * Processes escape character
-     * <p>
      *
      * <pre>
      * &lt;escape&gt; ::= \ (" | \ | / | b | f | n | r | t | u &lt;hex&gt;&lt;hex&gt;&lt;hex&gt;&lt;hex&gt;)
@@ -479,7 +487,6 @@ public class JSONProcessor {
 
     /**
      * Processes number
-     * <p>
      *
      * <pre>
      * &lt;number&gt; ::= &lt;int&gt; &lt;frac&gt;? &lt;exp&gt;?
@@ -540,7 +547,6 @@ public class JSONProcessor {
 
     /**
      * Processes integer
-     * <p>
      *
      * <pre>
      * &lt;int&gt; ::= -? &lt;digits&gt;
@@ -567,7 +573,6 @@ public class JSONProcessor {
 
     /**
      * Processes fraction
-     * <p>
      *
      * <pre>
      * &lt;frac&gt; ::= . &lt;digits&gt;
@@ -596,7 +601,6 @@ public class JSONProcessor {
 
     /**
      * Processes exponent
-     * <p>
      *
      * <pre>
      * &lt;exp&gt; ::= (e | E) (+ | -)? &lt;digits&gt;
@@ -627,7 +631,6 @@ public class JSONProcessor {
 
     /**
      * Processes digits
-     * <p>
      *
      * <pre>
      * &lt;digits&gt; ::= &lt;digit&gt; | &lt;digit&gt; &lt;digits&gt;
@@ -659,7 +662,6 @@ public class JSONProcessor {
 
     /**
      * Processes a digit
-     * <p>
      *
      * <pre>
      * &lt;digit&gt; ::= # digit from 0 to 9 #
@@ -679,7 +681,6 @@ public class JSONProcessor {
 
     /**
      * Processes a hex
-     * <p>
      *
      * <pre>
      * &lt;hex&gt; ::= &lt;digit&gt; | [a-f] [A-F]

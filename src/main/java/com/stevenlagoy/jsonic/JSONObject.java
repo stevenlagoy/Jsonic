@@ -3,6 +3,7 @@ package com.stevenlagoy.jsonic;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * A JSONObject is a custom data structure that represents a JSON object. It
@@ -121,11 +122,11 @@ public class JSONObject implements Iterable<Object> {
     }
 
     /**
-     * Create a JSONObject with the key and value, with a type of the value.
+     * Create a new JSONObject with the given key, value, and type
      * 
-     * @param key   String key of this JSONObject
-     * @param value Value with type
-     * @param type  Type of the value
+     * @param key   Key for the new JSONObject
+     * @param value Value for this key
+     * @param type  Type of the value. Should match value's actual type.
      */
     public JSONObject(String key, Object value, Class<? extends Object> type) {
         this.key = key;
@@ -133,6 +134,13 @@ public class JSONObject implements Iterable<Object> {
         this.type = type;
     }
 
+    /**
+     * Determine whether a list contains only JSONObjects
+     * 
+     * @param list List to evaluate
+     * @return {@code true} if the list contains only JSONObjects, {@code false}
+     *         otherwise
+     */
     private boolean isJSONList(List<?> list) {
         for (Object o : list)
             if (!(o instanceof JSONObject))
@@ -141,7 +149,7 @@ public class JSONObject implements Iterable<Object> {
     }
 
     /**
-     * Get this JSONObject's key
+     * Get the key of this JSONObject
      * 
      * @return Key of this JSONObject
      */
@@ -150,7 +158,7 @@ public class JSONObject implements Iterable<Object> {
     }
 
     /**
-     * Set this JSONObject's key
+     * Set the key of this JSONObject
      * 
      * @param key New key for this JSONObject
      */
@@ -159,9 +167,10 @@ public class JSONObject implements Iterable<Object> {
     }
 
     /**
-     * Get the value of this JSONObject
+     * Get the value, as an Object, of this JSONObject
      * 
-     * @return Value of this JSONObject
+     * @return The value of this JSONObject
+     * @see #get(String, Class)
      */
     public Object getValue() {
         return value;
@@ -171,8 +180,7 @@ public class JSONObject implements Iterable<Object> {
      * Return the value as the given class.
      *
      * @param clazz Existant class to cast this object's value into.
-     * @param <T>   Type T to cast the value of this class to.
-     * 
+     * @param <T>   Any type
      * @return Value as a type of the given class.
      * @throws ClassCastException if the value is not null and is not assignable to
      *                            the type T.
@@ -185,9 +193,7 @@ public class JSONObject implements Iterable<Object> {
      * Returns the value of this JSONObject as a String, or throws a
      * ClassCastException if unable.
      * 
-     * @return The value of this JSONObject as a String.
-     * @throws ClassCastException If the value of this JSONObject cannot be casted
-     *                            to a String.
+     * @return Value of this JSONObject as a String
      */
     public String getAsString() {
         if (value instanceof String)
@@ -200,9 +206,7 @@ public class JSONObject implements Iterable<Object> {
      * Returns the value of this JSONObject as a Number, or throws a
      * ClassCastException if unable.
      * 
-     * @return The value of this JSONObject as a Number.
-     * @throws ClassCastException If the value of this JSONObject cannot be casted
-     *                            to a Number.
+     * @return Value of this JSONObject as a Number
      */
     public Number getAsNumber() {
         if (value instanceof Number)
@@ -215,9 +219,7 @@ public class JSONObject implements Iterable<Object> {
      * Returns the value of this JSONObject as a Boolean, or throws a
      * ClassCastException if unable.
      * 
-     * @return The value of this JSONObject as a Boolean.
-     * @throws ClassCastException If the value of this JSONObject cannot be casted
-     *                            to a Boolean.
+     * @return Value of this JSONObject as a Boolean
      */
     public Boolean getAsBoolean() {
         if (value instanceof Boolean)
@@ -230,7 +232,7 @@ public class JSONObject implements Iterable<Object> {
      * Returns the value of this JSONObject as another JSONObject, or {@code null}
      * if unable.
      * 
-     * @return The value of this JSONObject as a JSONObject.
+     * @return Value of this JSONObject as a JSONObject
      */
     public JSONObject getAsObject() {
 
@@ -249,9 +251,7 @@ public class JSONObject implements Iterable<Object> {
      * Returns the value of this JSONObject as a List, or throws a
      * ClassCastException if unable.
      * 
-     * @return The value of this JSONObject as a List.
-     * @throws ClassCastException If the value of this JSONObject cannot be casted
-     *                            to a List.
+     * @return Value of this JSONObject as a List
      */
     public List<?> getAsList() {
         if (value instanceof List<?>)
@@ -261,10 +261,9 @@ public class JSONObject implements Iterable<Object> {
     }
 
     /**
-     * Set the value of this JSONObject. Will attempt to determine type of the value
-     * passed.
+     * Set the value of this JSONObject
      * 
-     * @param value Value to set for this JSONObject.
+     * @param value New value of this JSONObject
      */
     public void setValue(Object value) {
         this.value = value;
@@ -283,10 +282,10 @@ public class JSONObject implements Iterable<Object> {
     }
 
     /**
-     * Set the value of this JSONObject. Value will assume the passed type.
+     * Set the value of this JSONObject with a certain type
      * 
-     * @param value Value to set for this JSONObject.
-     * @param type  Type of the value.
+     * @param value New value of this JSONObject
+     * @param type  Type of the value. Should match the value's class
      */
     public void setValue(Object value, Class<? extends Object> type) {
         this.value = value;
@@ -308,7 +307,7 @@ public class JSONObject implements Iterable<Object> {
     /**
      * Returns the type of the inner object, even if technically empty or null.
      * 
-     * @return The class of the inner object.
+     * @return Type of this JSONObject's value
      */
     public Class<? extends Object> getType() {
         return type;
@@ -343,6 +342,390 @@ public class JSONObject implements Iterable<Object> {
     }
 
     /**
+     * Get a value from the JSONObject tree as the specified type.
+     * Performs implicit type conversion where reasonable.
+     *
+     * @param <T>  Any type
+     * @param key  The key to search for
+     * @param type The desired type class
+     * @return The value converted to the specified type, or null if not found
+     * @throws ClassCastException if the value cannot be converted to the specified
+     *                            type
+     */
+    public <T> T get(String key, Class<T> type) {
+        Object value = get(key);
+        if (value == null) {
+            return null;
+        }
+        return convertToType(value, type);
+    }
+
+    /**
+     * Get a value from the JSONObject tree as an Optional of the specified type.
+     * This provides safe retrieval without exception throwing.
+     *
+     * @param <T>  Any type
+     * @param key  The key to search for
+     * @param type The desired type class
+     * @return An Optional containing the converted value, or empty if not found or
+     *         conversion fails
+     */
+    public <T> Optional<T> getOptional(String key, Class<T> type) {
+        try {
+            return Optional.ofNullable(get(key, type));
+        } catch (ClassCastException e) {
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Get a value from the JSONObject tree, with a fallback default value.
+     * Returns the default if the key is not found or type conversion fails.
+     *
+     * @param <T>          Any type
+     * @param key          The key to search for
+     * @param type         The desired type class
+     * @param defaultValue The value to return if key is not found or conversion
+     *                     fails
+     * @return The converted value or the default value
+     */
+    public <T> T getWithDefault(String key, Class<T> type, T defaultValue) {
+        try {
+            T result = get(key, type);
+            return result != null ? result : defaultValue;
+        } catch (ClassCastException e) {
+            return defaultValue;
+        }
+    }
+
+    /**
+     * Convenience method to get a String value with a default fallback.
+     *
+     * @param key          The key to search for
+     * @param defaultValue The value to return if key is not found or is not a
+     *                     String
+     * @return The string value or the default value
+     */
+    public String getString(String key, String defaultValue) {
+        return getWithDefault(key, String.class, defaultValue);
+    }
+
+    /**
+     * Convenience method to get a String value with null as fallback.
+     *
+     * @param key The key to search for
+     * @return The string value or null if not found or not a String
+     */
+    public String getString(String key) {
+        return getString(key, null);
+    }
+
+    /**
+     * Convenience method to get an Integer value with a default fallback.
+     * Supports conversion from Number types.
+     *
+     * @param key          The key to search for
+     * @param defaultValue The value to return if key is not found or cannot be
+     *                     converted to int
+     * @return The integer value or the default value
+     */
+    public Integer getInt(String key, Integer defaultValue) {
+        try {
+            Object value = get(key);
+            if (value == null) {
+                return defaultValue;
+            }
+            if (value instanceof Number) {
+                return ((Number) value).intValue();
+            }
+            if (value instanceof String) {
+                try {
+                    return Integer.parseInt((String) value);
+                } catch (NumberFormatException e) {
+                    return defaultValue;
+                }
+            }
+            return defaultValue;
+        } catch (Exception e) {
+            return defaultValue;
+        }
+    }
+
+    /**
+     * Convenience method to get an Integer value with null as fallback.
+     *
+     * @param key The key to search for
+     * @return The integer value or null if not found or cannot be converted
+     */
+    public Integer getInt(String key) {
+        return getInt(key, null);
+    }
+
+    /**
+     * Convenience method to get a Double value with a default fallback.
+     * Supports conversion from Number types.
+     *
+     * @param key          The key to search for
+     * @param defaultValue The value to return if key is not found or cannot be
+     *                     converted to double
+     * @return The double value or the default value
+     */
+    public Double getDouble(String key, Double defaultValue) {
+        try {
+            Object value = get(key);
+            if (value == null) {
+                return defaultValue;
+            }
+            if (value instanceof Number) {
+                return ((Number) value).doubleValue();
+            }
+            if (value instanceof String) {
+                try {
+                    return Double.parseDouble((String) value);
+                } catch (NumberFormatException e) {
+                    return defaultValue;
+                }
+            }
+            return defaultValue;
+        } catch (Exception e) {
+            return defaultValue;
+        }
+    }
+
+    /**
+     * Convenience method to get a Double value with null as fallback.
+     *
+     * @param key The key to search for
+     * @return The double value or null if not found or cannot be converted
+     */
+    public Double getDouble(String key) {
+        return getDouble(key, null);
+    }
+
+    /**
+     * Convenience method to get a Long value with a default fallback.
+     * Supports conversion from Number types.
+     *
+     * @param key          The key to search for
+     * @param defaultValue The value to return if key is not found or cannot be
+     *                     converted to long
+     * @return The long value or the default value
+     */
+    public Long getLong(String key, Long defaultValue) {
+        try {
+            Object value = get(key);
+            if (value == null) {
+                return defaultValue;
+            }
+            if (value instanceof Number) {
+                return ((Number) value).longValue();
+            }
+            if (value instanceof String) {
+                try {
+                    return Long.parseLong((String) value);
+                } catch (NumberFormatException e) {
+                    return defaultValue;
+                }
+            }
+            return defaultValue;
+        } catch (Exception e) {
+            return defaultValue;
+        }
+    }
+
+    /**
+     * Convenience method to get a Long value with null as fallback.
+     *
+     * @param key The key to search for
+     * @return The long value or null if not found or cannot be converted
+     */
+    public Long getLong(String key) {
+        return getLong(key, null);
+    }
+
+    /**
+     * Convenience method to get a Boolean value with a default fallback.
+     * Supports conversion from String ("true"/"false", case-insensitive).
+     *
+     * @param key          The key to search for
+     * @param defaultValue The value to return if key is not found or cannot be
+     *                     converted to boolean
+     * @return The boolean value or the default value
+     */
+    public Boolean getBoolean(String key, Boolean defaultValue) {
+        try {
+            Object value = get(key);
+            if (value == null) {
+                return defaultValue;
+            }
+            if (value instanceof Boolean) {
+                return (Boolean) value;
+            }
+            if (value instanceof String) {
+                String str = ((String) value).toLowerCase();
+                if ("true".equals(str)) {
+                    return true;
+                } else if ("false".equals(str)) {
+                    return false;
+                }
+                return defaultValue;
+            }
+            return defaultValue;
+        } catch (Exception e) {
+            return defaultValue;
+        }
+    }
+
+    /**
+     * Convenience method to get a Boolean value with null as fallback.
+     *
+     * @param key The key to search for
+     * @return The boolean value or null if not found or cannot be converted
+     */
+    public Boolean getBoolean(String key) {
+        return getBoolean(key, null);
+    }
+
+    /**
+     * Convenience method to get a nested JSONObject with the given key.
+     *
+     * @param key The key to search for
+     * @return The JSONObject if found and is an object, or a new empty JSONObject
+     *         otherwise
+     */
+    public JSONObject getObject(String key) {
+        Object value = get(key);
+        if (value instanceof JSONObject) {
+            return (JSONObject) value;
+        }
+        if (value instanceof List<?>) {
+            List<?> list = (List<?>) value;
+            if (!list.isEmpty() && list.get(0) instanceof JSONObject) {
+                return (JSONObject) list.get(0);
+            }
+        }
+        return new JSONObject(key);
+    }
+
+    /**
+     * Get a List with elements converted to the specified type.
+     * Attempts to convert each element to the specified type.
+     *
+     * @param <T>         Any type
+     * @param key         The key to search for
+     * @param elementType The desired element type
+     * @return A list of converted elements, or empty list if not found
+     */
+    public <T> List<T> getListAs(String key, Class<T> elementType) {
+        Object value = get(key);
+        if (value == null) {
+            return new ArrayList<>();
+        }
+
+        if (value instanceof List<?>) {
+            List<?> list = (List<?>) value;
+            List<T> result = new ArrayList<>();
+            for (Object item : list) {
+                try {
+                    result.add(convertToType(item, elementType));
+                } catch (ClassCastException e) {
+                    // Skip items that cannot be converted
+                }
+            }
+            return result;
+        }
+
+        return new ArrayList<>();
+    }
+
+    /**
+     * Internal helper method to convert an object to the specified type.
+     * Supports implicit type conversions where reasonable.
+     *
+     * @param value The value to convert
+     * @param type  The target type class
+     * @return The converted value
+     * @throws ClassCastException if conversion is not possible
+     */
+    @SuppressWarnings("unchecked")
+    private <T> T convertToType(Object value, Class<T> type) throws ClassCastException {
+        if (value == null) {
+            return null;
+        }
+
+        // Direct type match
+        if (type.isInstance(value)) {
+            return (T) value;
+        }
+
+        // String conversions
+        if (type == String.class) {
+            return (T) String.valueOf(value);
+        }
+
+        // Number conversions
+        if (type == Integer.class && value instanceof Number) {
+            return (T) Integer.valueOf(((Number) value).intValue());
+        }
+        if (type == Long.class && value instanceof Number) {
+            return (T) Long.valueOf(((Number) value).longValue());
+        }
+        if (type == Double.class && value instanceof Number) {
+            return (T) Double.valueOf(((Number) value).doubleValue());
+        }
+        if (type == Float.class && value instanceof Number) {
+            return (T) Float.valueOf(((Number) value).floatValue());
+        }
+        if (type == Number.class && value instanceof Number) {
+            return (T) value;
+        }
+
+        // String to Number conversions
+        if (value instanceof String) {
+            String str = (String) value;
+            try {
+                if (type == Integer.class) {
+                    return (T) Integer.valueOf(str);
+                }
+                if (type == Long.class) {
+                    return (T) Long.valueOf(str);
+                }
+                if (type == Double.class) {
+                    return (T) Double.valueOf(str);
+                }
+                if (type == Float.class) {
+                    return (T) Float.valueOf(str);
+                }
+                if (type == Number.class) {
+                    try {
+                        return (T) Integer.valueOf(str);
+                    } catch (NumberFormatException e1) {
+                        return (T) Double.valueOf(str);
+                    }
+                }
+            } catch (NumberFormatException e) {
+                throw new ClassCastException("Cannot convert string '" + str + "' to " + type.getName());
+            }
+        }
+
+        // Boolean conversions
+        if (type == Boolean.class) {
+            if (value instanceof String) {
+                String str = ((String) value).toLowerCase();
+                if ("true".equals(str)) {
+                    return (T) Boolean.TRUE;
+                }
+                if ("false".equals(str)) {
+                    return (T) Boolean.FALSE;
+                }
+            }
+        }
+
+        // If no conversion is possible, throw exception
+        throw new ClassCastException("Cannot convert " + value.getClass().getName() + " to " + type.getName());
+    }
+
+    /**
      * Get the native type of the inner value of this JSONObject.
      *
      * @return Class of the value (String, Number, JSONObject, List&lt;?&gt;,
@@ -362,7 +745,8 @@ public class JSONObject implements Iterable<Object> {
      * recursively.
      *
      * @param result List&lt;Object&gt; to be populated with the values from the
-     *               inorder traversal.
+     *               inorder
+     *               traversal.
      */
     public void inorderTraversal(List<Object> result) {
         if (value == null) {
@@ -381,9 +765,9 @@ public class JSONObject implements Iterable<Object> {
     }
 
     /**
-     * Iterate through the tree structure of this JSONObject inorder.
+     * Iterate through the tree structure of this JSONObject inorder
      * 
-     * @return Iterator over Object for the tree structure of this JSONObject.
+     * @return Iterator over the value of this JSONObject
      */
     @Override
     public Iterator<Object> iterator() {
@@ -406,7 +790,6 @@ public class JSONObject implements Iterable<Object> {
         return String.join("\n", JSONStringifier.expandJson(JSONStringifier.stringifyJson(this)));
     }
 
-    /** {@inheritDoc} */
     @Override
     public int hashCode() {
         return this.toString().hashCode();
@@ -416,20 +799,19 @@ public class JSONObject implements Iterable<Object> {
      * Determine whether this JSONObect is equal to the other JSONObject by
      * comparing their String representations.
      *
-     * @param obj Object with which to compare this JSONObject
+     * @param other JSONObject with which to compare this JSONObject
      *
      * @return True if the String representations are the same, False otherwise
      *
      * @see JSONObject#toString()
      */
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
+    public boolean equals(Object other) {
+        if (this == other)
             return true;
-        if (obj == null || getClass() != obj.getClass())
+        if (other == null || getClass() != other.getClass())
             return false;
-        JSONObject other = (JSONObject) obj;
-        return this.toString().equals(other.toString());
+        return this.toString().equals(((JSONObject) other).toString());
     }
 
 }

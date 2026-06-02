@@ -1,8 +1,10 @@
 package com.stevenlagoy.jsonic;
 
 import java.lang.reflect.Array;
+import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -120,47 +122,49 @@ public interface Jsonic<T extends Jsonic<T>> {
     }
 
     /**
-     * Reflects the passed Object's public instance fields and their values into a
-     * JSONObject.
+     * Reflects the passed Object's fields and their values into a JSONObject.
      * 
      * @param o Object of any type.
      * @return JSONObject containing the passed object's fields and their values.
-     * @see #classJson(Class)
+     * @see #toJson(Object, Collection)
      */
     public static JSONObject toJson(Object o) {
-        List<JSONObject> fields = new ArrayList<>();
-        Class<?> clazz = o.getClass();
+        return toJson(o, Arrays.asList(o.getClass().getDeclaredFields()));
+    }
 
-        // Get all fields declared by O.class
-        for (java.lang.reflect.Field f : clazz.getDeclaredFields()) {
-            // Only take public, non-static fields
-            int modifiers = f.getModifiers();
-            if (Modifier.isPublic(modifiers) && !Modifier.isStatic(modifiers)) {
-                Object value;
-                try {
-                    value = f.get(o);
-                } catch (IllegalArgumentException e) {
-                    e.printStackTrace();
-                    continue;
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                    continue;
-                }
+    /**
+     * Reflects all of the fields for the passed object and their values into a
+     * JSONObject.
+     * 
+     * @param o      Object of any type.
+     * @param fields Collection of fields to include in the JSON representation.
+     * @return JSONObject containing the fields names and values for the passed
+     *         object.
+     */
+    public static JSONObject toJson(Object o, Collection<Field> fields) {
+        List<JSONObject> jsonFields = new ArrayList<>();
 
-                if (value instanceof Jsonic<?> jsonic) {
-                    fields.add(new JSONObject(f.getName(), jsonic.toJson()));
-                } else if (value != null && isPrimitiveOrWrapper(value.getClass())) {
-                    fields.add(new JSONObject(f.getName(), value));
-                } else if (value != null && value.getClass().isArray()) {
-                    fields.add(new JSONObject(f.getName(), arrayToJson(value)));
-                } else if (value != null && value instanceof Collection<?> collection) {
-                    fields.add(new JSONObject(f.getName(), collectionToJson(collection)));
-                } else if (value != null) {
-                    fields.add(new JSONObject(f.getName(), toJson(value)));
-                } else
-                    fields.add(new JSONObject(f.getName(), null));
+        for (Field f : fields) {
+            Object value;
+            try {
+                value = f.get(o);
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+                continue;
+            }
+
+            if (value == null) {
+                jsonFields.add(new JSONObject(f.getName(), null));
+            } else if (value instanceof Jsonic<?> jsonic) {
+                jsonFields.add(new JSONObject(f.getName(), jsonic.toJson()));
+            } else if (isPrimitiveOrWrapper(value.getClass())) {
+                jsonFields.add(new JSONObject(f.getName(), value));
+            } else if (value.getClass().isAnnotation()) {
+                jsonFields.add(new JSONObject(f.getName(), arrayToJson(value)));
+            } else if (value instanceof Collection<?> collection) {
+                jsonFields.add(new JSONObject(f.getName(), toJson(collection)));
             }
         }
-        return new JSONObject(o.getClass().getSimpleName(), fields);
+        return new JSONObject(o.getClass().getSimpleName(), jsonFields);
     }
 }

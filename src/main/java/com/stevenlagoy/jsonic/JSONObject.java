@@ -639,6 +639,14 @@ public class JSONObject implements Iterable<Object> {
         return new ArrayList<>();
     }
 
+    /**
+     * Add a JSONObject to the value of this JSONObject, if the value is a
+     * {@code List<JSONObject>}
+     * 
+     * @param added JSONObject to add to the value
+     * @throws IllegalStateException When the inner type of this JSONObject is not
+     *                               {@code List<JSONObject>}
+     */
     public void add(JSONObject added) {
         if (!(value instanceof List<?> list))
             throw new IllegalStateException(
@@ -655,10 +663,24 @@ public class JSONObject implements Iterable<Object> {
         objects.add(added);
     }
 
+    /**
+     * Add JSONObjects to the value of this JSONObject, if the value is a
+     * {@code List<JSONObject>}
+     * 
+     * @param added JSONObjects to add to the value
+     * @throws IllegalStateException When the inner type of this JSONObject is not
+     *                               {@code List<JSONObject>}
+     */
     public void addAll(JSONObject... added) {
         Arrays.stream(added).forEach(this::add);
     }
 
+    /**
+     * Merge this JSONObject with others and return this JSONObject as the root.
+     * 
+     * @param fields JSONObjects to add to this JSONObject's value
+     * @return This JSONObject, which will contain the passed fields in its value.
+     */
     public JSONObject merge(JSONObject... fields) {
         addAll(fields);
         return this;

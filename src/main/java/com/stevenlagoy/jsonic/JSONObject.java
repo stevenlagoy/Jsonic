@@ -1,6 +1,7 @@
 package com.stevenlagoy.jsonic;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -636,6 +637,31 @@ public class JSONObject implements Iterable<Object> {
         }
 
         return new ArrayList<>();
+    }
+
+    public void add(JSONObject added) {
+        if (!(value instanceof List<?> list))
+            throw new IllegalStateException(
+                    "Cannot add an inner object unless this JSONObject stores a List<JSONObject>.");
+
+        for (Object item : list) {
+            if (!(item instanceof JSONObject)) {
+                throw new IllegalStateException("Cannot add to a JSONObject with a mixed list value.");
+            }
+        }
+
+        @SuppressWarnings("unchecked")
+        List<JSONObject> objects = (List<JSONObject>) list;
+        objects.add(added);
+    }
+
+    public void addAll(JSONObject... added) {
+        Arrays.stream(added).forEach(this::add);
+    }
+
+    public JSONObject merge(JSONObject... fields) {
+        addAll(fields);
+        return this;
     }
 
     /**

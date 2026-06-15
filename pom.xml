@@ -5,7 +5,7 @@
 
     <groupId>io.github.stevenlagoy</groupId>
     <artifactId>jsonic</artifactId>
-    <version>1.0.9</version>
+    <version>1.0.10</version>
 
     <name>Jsonic: JSON Java Objectifier</name>
     <description>Java tools for converting JSON into typed object structures</description>

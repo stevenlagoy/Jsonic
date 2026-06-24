@@ -17,7 +17,7 @@ import java.util.Scanner;
 import java.util.Set;
 
 /** FileOperations provides utilities for working with files. */
-public class FileOperations {
+class FileOperations {
 
     private FileOperations() {
     }

@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 /** Util class for operations using Strings. */
-public class StringOperations {
+class StringOperations {
 
     private StringOperations() {
     }

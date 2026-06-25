@@ -32,3 +32,6 @@ target/
 *.txt
 *.env
 *.key
+
+# User-specific IDE files
+settings.json

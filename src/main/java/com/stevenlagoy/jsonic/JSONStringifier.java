@@ -1,5 +1,6 @@
 package com.stevenlagoy.jsonic;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -45,7 +46,7 @@ class JSONStringifier {
      * @return a list of indented lines representing the formatted JSON
      */
     static List<String> expand(String json) {
-        List<String> result = new java.util.ArrayList<>();
+        List<String> result = new ArrayList<>();
         int depth = 0;
         StringBuilder currentLine = new StringBuilder();
 
@@ -107,7 +108,7 @@ class JSONStringifier {
      * Dispatches to the appropriate method based on the runtime type of
      * {@code value}:
      * <ul>
-     * <li>{@code null} → {@code "null"}</li>
+     * <li>{@code null} → {@code null}</li>
      * <li>{@code String} → quoted and escaped string</li>
      * <li>{@code Number} or {@code Boolean} → {@link Object#toString()}</li>
      * <li>{@code List<JSONObject>} → JSON object body {@code {...}}</li>
@@ -119,16 +120,20 @@ class JSONStringifier {
      * @return the JSON string representation of the value
      */
     private static String stringifyValue(Object value) {
-        if (value == null)
-            return "null";
-        if (value instanceof String s)
+        if (value == null) {
+            return null;
+        } else if (value instanceof String s) {
             return "\"" + escapeString(s) + "\"";
-        if (value instanceof Number || value instanceof Boolean)
+        } else if (value instanceof Number || value instanceof Boolean) {
             return value.toString();
-        if (value instanceof List<?> list)
+        } else if (value instanceof List<?> list) {
             return stringifyList(list);
-        if (value instanceof JSONObject json)
+        } else if (value instanceof JSONObject json) {
+            // Edge case from manual construction: never happens by reading a JSON file
             return stringifyObject(json);
+        } else if (value instanceof JSONSerializable serializable) {
+            return stringifyObject(serializable.toJson());
+        }
         // Fallback: stringify unknown types as quoted strings
         return "\"" + escapeString(value.toString()) + "\"";
     }
@@ -139,14 +144,17 @@ class JSONStringifier {
      * <p>
      * A list whose first element is a {@link JSONObject} is treated as a JSON
      * object body (a sequence of key-value pairs). Any other list is treated as a
-     * JSON array.
+     * JSON array. Due to type erasure, empty lists will be assumed to be a JSON
+     * array rather than a JSON object, producing {@code []} rather than {@code {}}.
+     * If a list should be treated as a JSON object, it is recommended to put a
+     * marker object inside, like {@code {"_" : ""}}.
      *
      * @param list the list to stringify; must not be {@code null}
      * @return a JSON object body {@code {...}} or array {@code [...]} string
      */
     private static String stringifyList(List<?> list) {
         if (list.isEmpty())
-            return "{}";
+            return "[]";
         if (list.get(0) instanceof JSONObject)
             return stringifyObjectBody(list);
         return stringifyArray(list);

@@ -342,7 +342,7 @@ class JSONParser {
             return null;
         }
         stringLine = stringLine.substring(1, stringLine.length() - 1);
-        if (stringLine.length() == 2) {
+        if (stringLine.isEmpty()) {
             return ""; // Empty string
         }
         return parseCharacters(stringLine);
@@ -382,7 +382,7 @@ class JSONParser {
                 if (escapeEnd > charactersLine.length()) {
                     return null; // Truncated sequence
                 }
-                String parsed = parseEscape(charactersLine.substring(1, escapeEnd));
+                String parsed = parseEscape(charactersLine.substring(i, escapeEnd));
                 if (parsed == null) {
                     return null; // Malformed sequence
                 }

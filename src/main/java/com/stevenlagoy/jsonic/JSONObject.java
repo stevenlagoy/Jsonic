@@ -9,9 +9,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -92,8 +96,11 @@ public class JSONObject implements Iterable<Object>, Cloneable {
 
     /**
      * Creates a {@link JSONObject} by parsing the JSON file at the given path. The
-     * key and value of this node are set from the root node of the parsed
-     * structure.
+     * key of this node is set from the file name of the given path, and value of
+     * this node is set from the value of the root node of the parsed structure.
+     * <p>
+     * If the given path is not a valid JSON file, the value of this node will be
+     * {@code null}.
      *
      * @param path path to a valid JSON file
      * @throws RuntimeException if the file cannot be read or parsed
@@ -107,7 +114,19 @@ public class JSONObject implements Iterable<Object>, Cloneable {
         this.value = json.getValue();
     }
 
-    public JSONObject(@NotNull String key, @NotNull Iterable<String> lines) {
+    /**
+     * Creates a {@link JSONObject} from the String representation of a JSON
+     * structure (like a JSON file). The key of this node is set from the passed
+     * key, and the value of this node are set from the root node of the parsed
+     * structure.
+     * <p>
+     * If the String representation is invalid, the value of this node will be
+     * {@code null}.
+     * 
+     * @param key   key for this {@link JSONObject}
+     * @param lines String representation of a JSON structure (like a JSON file)
+     */
+    public JSONObject(@NotNull String key, @Nullable Iterable<String> lines) {
         JSONObject json = JSONParser.parse(key, lines);
         this.key = json.getKey();
         this.value = json.getValue();
@@ -119,7 +138,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * @param key the key for this node; must not be {@code null}
      */
     public JSONObject(@NotNull String key) {
-        this(key, null);
+        this(key, (Object) null);
     }
 
     /**
@@ -191,7 +210,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
         if (!(value instanceof List<?> list) || list.isEmpty()) {
             return false;
         }
-        return list.getFirst() instanceof JSONObject;
+        return list.get(0) instanceof JSONObject; // List<?>.getFirst() is a Java 21 feature
     }
 
     /**
@@ -316,7 +335,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * {@code true}.
      * 
      * @param keys the keys to search for
-     * @return {@code} true if all of the given keys exist in this subtre;
+     * @return {@code true} if all of the given keys exist in this subtree;
      *         {@code false} otherwise
      */
     public boolean hasAllKeys(@NotNull String... keys) {
@@ -361,7 +380,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      */
     public void requireAnyKey(@NotNull Collection<String> keys) throws IllegalArgumentException {
         if (!keys.stream().anyMatch(this::hasKey)) {
-            throw new IllegalArgumentException("The keys, " + String.join("', '", keys)
+            throw new IllegalArgumentException("The keys, '" + String.join("', '", keys)
                     + "', one of which is required, are all missing in subtree '" + this.key + "'");
         }
     }
@@ -392,7 +411,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * {@code true}.
      * 
      * @param keys the keys to search for
-     * @return {@code} true if all of the given keys exist in this subtre;
+     * @return {@code true} if all of the given keys exist in this subtree;
      *         {@code false} otherwise
      */
     public boolean hasAllKeys(@NotNull Collection<String> keys) {
@@ -412,7 +431,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
         for (String key : keys) {
             if (!hasKey(key)) {
                 throw new IllegalArgumentException(
-                        "The requied key, '" + key + "', is missing in subtree '" + this.key + "'");
+                        "The required key, '" + key + "', is missing in subtree '" + this.key + "'");
             }
         }
     }
@@ -446,8 +465,24 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * @throws IllegalArgumentException if the nested object is missing or fails
      *                                  constraints
      */
-    public void requireStructure(@NotNull String key, @NotNull Consumer<JSONObject> validator) {
+    public void requireStructure(@NotNull String key, @NotNull Consumer<JSONObject> validator)
+            throws IllegalArgumentException {
         JSONObject nested = requireJson(key);
+        validator.accept(nested);
+    }
+
+    /**
+     * Validates a nested JSON object structure with the given path by executing a
+     * functional block of validations against it.
+     * 
+     * @param validator a consumer block containing assertions to execute on the
+     *                  nested object
+     * @param path      the path segments or a dot-separated path sequence
+     * @throws IllegalArgumentException if the path is invalid or the nested object
+     *                                  is missing or fails constraints
+     */
+    public void requireStructure(Consumer<JSONObject> validator, String... path) throws IllegalArgumentException {
+        JSONObject nested = requireJsonAt(path);
         validator.accept(nested);
     }
 
@@ -515,6 +550,57 @@ public class JSONObject implements Iterable<Object>, Cloneable {
     }
 
     /**
+     * Returns the value of a direct child node of this node as an {@link Object}.
+     * The returned value may be any valid JSON type, including {@code null}. Prefer
+     * the typed accessors ({@link #getString(String)}, {@link #getNumber(String)},
+     * etc.) when the expected type is known.
+     * 
+     * @param key the key of a child node
+     * @return the value of the child node with the given key, or {@code null}
+     */
+    public @Nullable Object getValue(@NotNull String key) {
+        Optional<JSONObject> child = childStream().filter(node -> node.getKey().equals(key)).findFirst();
+        if (child.isPresent()) {
+            return child.get().getValue();
+        }
+        return null;
+    }
+
+    /**
+     * Returns the value of a direct child node of this node as an {@link Object}.
+     * The returned value may be any valid JSON type, including {@code null}. If no
+     * child node has the given key, an {@link IllegalArgumentException} will be
+     * thrown.
+     * 
+     * @param key the key of a child node
+     * @return the value of the child node with the given key, or {@code null}
+     * @throws IllegalArgumentException if there is no child with the given key
+     */
+    public @Nullable Object requireValue(@NotNull String key) throws IllegalArgumentException {
+        return childStream().filter(child -> child.getKey().equals(key)).findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("The required key, '" + key
+                        + "' was not present for any of the children of the node '" + this.key + "'"));
+    }
+
+    /**
+     * Returns the value of a direct child node of this node as an {@link Object}.
+     * The returned value may be {@code null} if the child's value is null, or any
+     * valid JSON type. If no child node has the given key, an
+     * {@link IllegalArgumentException} from the given supplier will be thrown.
+     * 
+     * @param key               the key of a child node
+     * @param exceptionSupplier supplier of the exception to be thrown if no child
+     *                          node has the given key
+     * @return the value of the child node with the given key, or {@code null}
+     * @throws IllegalArgumentException if there is no child with the given key,
+     *                                  gotten from the supplier
+     */
+    public @NotNull Object requireValue(@NotNull String key,
+            @NotNull Supplier<IllegalArgumentException> exceptionSupplier) throws IllegalArgumentException {
+        return childStream().filter(child -> child.getKey().equals(key)).findFirst().orElseThrow(exceptionSupplier);
+    }
+
+    /**
      * Returns the value of this node cast to the given type, or {@code null} if the
      * value is not an instance of that type.
      *
@@ -546,8 +632,8 @@ public class JSONObject implements Iterable<Object>, Cloneable {
 
     /**
      * Returns the value of this node cast to the given type, throwing an
-     * {@link IllegalArgumentException} if the value is not an instance of that
-     * type.
+     * {@link IllegalArgumentException} if the value is not an instance
+     * of that type.
      * 
      * @param <R>  the desired return type
      * @param type the class to cast the value to
@@ -563,6 +649,19 @@ public class JSONObject implements Iterable<Object>, Cloneable {
                 "Value of node '" + key + "' is not of required type " + type.getSimpleName());
     }
 
+    /**
+     * Returns the value of this node cast to the given type, throwing an
+     * {@link IllegalArgumentException} from the given supplier if the value is not
+     * an instance of that type.
+     * 
+     * @param <R>               the desired return type
+     * @param type              the class to cast the value to
+     * @param exceptionSupplier supplier of the exception to be thrown if this
+     *                          node's value is not castable to {@code R}
+     * @return the value cast to {@code R}
+     * @throws IllegalArgumentException if this node's value is not
+     *                                  castable to {@code R}
+     */
     public <R> @NotNull R requireValue(@NotNull Class<R> type, Supplier<IllegalArgumentException> exceptionSupplier)
             throws IllegalArgumentException {
         if (value != null && type.isInstance(value)) {
@@ -636,6 +735,17 @@ public class JSONObject implements Iterable<Object>, Cloneable {
         return requireValue(Number.class);
     }
 
+    /**
+     * Returns the value of this node as a {@link Number}, throwing an
+     * {@link IllegalArgumentException} from the given supplier if the value is not
+     * a {@link Number}. Does not search the tree; operates on this node's value
+     * directly.
+     * 
+     * @param exceptionSupplier supplier of the exception to be thrown if this
+     *                          node's value is not a {@link Number}
+     * @return the value as a {@link Number}
+     * @throws IllegalArgumentException if this node's value is not a {@link Number}
+     */
     public @NotNull Number requireNumber(@NotNull Supplier<IllegalArgumentException> exceptionSupplier)
             throws IllegalArgumentException {
         return requireValue(Number.class, exceptionSupplier);
@@ -938,7 +1048,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
             if (values.isEmpty()) {
                 return Optional.empty();
             }
-            return Optional.of(values.getFirst());
+            return Optional.of(values.get(0));
         }
         return Optional.empty();
     }
@@ -991,6 +1101,17 @@ public class JSONObject implements Iterable<Object>, Cloneable {
         return find(Arrays.asList(keys));
     }
 
+    /**
+     * Searches the subtree rooted at this node for the first node matching any of
+     * the given keys and returns its value, throwing an
+     * {@link IllegalArgumentException} if none is found. Keys are tried in the
+     * order provided; the first match across the entire subtree is returned.
+     * 
+     * @param keys the keys to search for, in priority order
+     * @return the first matching value found
+     * @throws IllegalArgumentException if no node with any of the given keys exists
+     *                                  in this subtree
+     */
     public @NotNull Object require(@NotNull String... keys) throws IllegalArgumentException {
         return require(Arrays.asList(keys));
     }
@@ -1036,10 +1157,37 @@ public class JSONObject implements Iterable<Object>, Cloneable {
         return defaultSupplier.get();
     }
 
-    public @NotNull Object require(@NotNull Collection<String> keys) {
-        return find(keys).orElseThrow(() -> new IllegalArgumentException());
+    /**
+     * Searches the subtree rooted at this node for the first node matching any of
+     * the given keys and returns its value, throwing an
+     * {@link IllegalArgumentException} if none is found. Keys are tried in the
+     * order provided; the first match across the entire subtree is returned.
+     * 
+     * @param keys the keys to search for, in priority order
+     * @return the first matching value found
+     * @throws IllegalArgumentException if no node with any of the given keys exists
+     *                                  in this subtree
+     */
+    public @NotNull Object require(@NotNull Collection<String> keys) throws IllegalArgumentException {
+        return find(keys).orElseThrow(() -> new IllegalArgumentException("The keys, '"
+                + String.join("', '", keys) + "', one of which is required, are all missing in subtree '"
+                + this.key + "'"));
     }
 
+    /**
+     * Searches the subtree rooted at this node for the first node matching any of
+     * the given keys and returns its value, throwing an
+     * {@link IllegalArgumentException} from the given supplier if none is found.
+     * Keys are tried in the order provided; the first match across the entire
+     * subtree is returned.
+     * 
+     * @param keys              the keys to search for, in priority order
+     * @param exceptionSupplier Supplier of the exception to be thrown if no match
+     *                          is found for any of the keys
+     * @return the first matching value found
+     * @throws IllegalArgumentException if no node with any of the given keys exists
+     *                                  in this subtree, gotten from the supplier
+     */
     public @NotNull Object require(@NotNull Collection<String> keys,
             @NotNull Supplier<IllegalArgumentException> exceptionSupplier) throws IllegalArgumentException {
         return find(keys).orElseThrow(exceptionSupplier);
@@ -1311,7 +1459,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
 
         JSONObject current = this;
         int startIndex = 0;
-        if (current.key.equals(segments.getFirst())) {
+        if (current.key.equals(segments.get(0))) {
             startIndex = 1;
         }
 
@@ -1905,7 +2053,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      *                                  casted to an {@link Integer}
      */
     public @NotNull Integer requireIntAt(@NotNull String... path) throws IllegalArgumentException {
-        return findIntAt(path).orElseThrow(() -> new IllegalAccessError("The path " + String.join(".", path)
+        return findIntAt(path).orElseThrow(() -> new IllegalArgumentException("The path " + String.join(".", path)
                 + " could not be resolved or resulted in a null or non-Integer value in subtree '" + this.key + "'"));
     }
 
@@ -3050,12 +3198,30 @@ public class JSONObject implements Iterable<Object>, Cloneable {
     // VALUE MUTATION --------------------------------------------------------------
 
     /**
-     * Sets the value of this node.
+     * Sets the value of this node. If the value is {@link JSONSerializable} or is a
+     * list containing {@link JSONSerializable} elements, those will be converted to
+     * JSONObjects using their {@link JSONSerializable#toJson()} method.
      *
      * @param value the new value; may be {@code null} or any valid JSON type
      */
     public void setValue(@Nullable Object value) {
-        this.value = value;
+        if (value == null) {
+            this.value = null;
+        } else if (value instanceof JSONSerializable serializable) {
+            this.value = new ArrayList<>().add(serializable.toJson());
+        } else if (value instanceof List<?> list) {
+            List<Object> res = new ArrayList<>();
+            for (Object item : list) {
+                if (item instanceof JSONSerializable serializable) {
+                    res.add(serializable.toJson());
+                } else {
+                    res.add(item);
+                }
+            }
+            this.value = res;
+        } else {
+            this.value = value;
+        }
     }
 
     /**
@@ -3111,7 +3277,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      */
     public @Nullable Object put(@NotNull String key, @Nullable Object value) {
         if (this.value == null) {
-            this.value = new ArrayList<JSONObject>();
+            this.value = new ArrayList<>();
         }
         if (!(this.value instanceof List<?>)) {
             throw new IllegalStateException("Cannot update or put property into a scalar JSON node.");
@@ -3120,9 +3286,46 @@ public class JSONObject implements Iterable<Object>, Cloneable {
         List<JSONObject> innerList = (List<JSONObject>) this.value;
         for (JSONObject child : innerList) {
             if (child.getKey().equals(key)) {
-                Object previousValue = child.getValue();
-                child.setValue(value);
+                Object previousValue = child.value;
+                child.value = value;
                 return previousValue;
+            }
+        }
+        innerList.add(new JSONObject(key, value));
+        return null;
+    }
+
+    /**
+     * Associates the specified value with the specified key within this node only
+     * if there is no current association with the given key, or the association is
+     * {@code null}. If this node currently holds a {@code null} value, it is
+     * initialized as an empty list to act natively as a JSON object container.
+     * 
+     * @param key   the key with which the specified value is to be associated
+     * @param value the value to be assigned to the key, if there is no previous
+     *              association
+     * @return the value currently mapped to the key, if present and not
+     *         {@code null}, or {@code null} if there was no previous mapping or the
+     *         previous mapping was {@code null}
+     * @throws IllegalStateException if this node stores a scalar type instead of an
+     *                               object/list structure
+     */
+    public @Nullable Object putIfAbsent(@NotNull String key, @Nullable Object value) {
+        if (this.value == null) {
+            this.value = new ArrayList<>();
+        }
+        if (!(this.value instanceof List<?>)) {
+            throw new IllegalStateException("Cannot update or put property into a scalar JSON node.");
+        }
+        @SuppressWarnings("unchecked")
+        List<JSONObject> innerList = (List<JSONObject>) this.value;
+        for (JSONObject child : innerList) {
+            if (child.getKey().equals(key)) {
+                if (child.getValue() == null) {
+                    child.value = value;
+                    return null;
+                }
+                return child.getValue();
             }
         }
         innerList.add(new JSONObject(key, value));
@@ -3241,20 +3444,15 @@ public class JSONObject implements Iterable<Object>, Cloneable {
     }
 
     /**
-     * Transforms this {@link JSONObject} instance into an alternative instance
-     * container through a functional mapping deserializer rule strategy.
-     * <p>
-     * This provides an elegant, inverse-deserialization alternative to traditional
-     * non-static instance extraction patterns (e.g.
-     * {@code MyPojo pojo = json.toObject(MyPojo::fromJson);}).
-     *
-     * @param <T>          the target instance class map type
-     * @param deserializer functional lambda blueprint handler or constructor
-     *                     reference
-     * @return a mapped instance configuration element
+     * Applies the given funtion to this node and returns the result.
+     * 
+     * @param <T>      the target type after applying the given function
+     * @param function function which accepts this {@link JSONObject} and returns
+     *                 with the desired type
+     * @return the result of applying this node to the given function
      */
-    public <T> T toObject(@NotNull Function<JSONObject, T> deserializer) {
-        return deserializer.apply(this);
+    public <T> T toObject(@NotNull Function<JSONObject, T> function) {
+        return function.apply(this);
     }
 
     // ITERABLE METHODS ------------------------------------------------------------
@@ -3306,6 +3504,50 @@ public class JSONObject implements Iterable<Object>, Cloneable {
         return traversal.iterator();
     }
 
+    /**
+     * Returns an {@link Iterator} over the direct {@link JSONObject} children of
+     * this node in order.
+     * <p>
+     * The iterator does not support {@link Iterator#remove()}.
+     * 
+     * @return an iterator over the ordered {@link JSONObject} children of this node
+     */
+    public @NotNull Iterator<JSONObject> childIterator() {
+        List<JSONObject> children = new ArrayList<>();
+        if (value instanceof List<?> list) {
+            for (Object item : list) {
+                if (item instanceof JSONObject child) {
+                    children.add(child);
+                }
+            }
+        }
+        return children.iterator();
+    }
+
+    /**
+     * Returns a {@link Stream} over the leaf values of this node's subtree in
+     * inorder traversal. Each element is a scalar value ({@link String},
+     * {@link Number}, {@link Boolean}, or {@code null}); {@link JSONObject} nodes
+     * are descended into rather than yielded directly.
+     * 
+     * @return a stream over the inorder traversal of this subtree's leaf values
+     */
+    public Stream<Object> stream() {
+        Spliterator<Object> spliterator = Spliterators.spliteratorUnknownSize(iterator(), Spliterator.ORDERED);
+        return StreamSupport.stream(spliterator, false);
+    }
+
+    /**
+     * Returns a {@link Stream} over the direct {@link JSONObject} children of
+     * this node in order.
+     * 
+     * @return a stream over the ordered {@link JSONObject} children of this node
+     */
+    public Stream<JSONObject> childStream() {
+        Spliterator<JSONObject> spliterator = Spliterators.spliteratorUnknownSize(childIterator(), Spliterator.ORDERED);
+        return StreamSupport.stream(spliterator, false);
+    }
+
     // CLONEABLE METHODS -----------------------------------------------------------
 
     /**
@@ -3328,7 +3570,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
         try {
             JSONObject cloned = (JSONObject) super.clone();
             if (value instanceof JSONObject valueJson) {
-                cloned.setValue(valueJson.clone());
+                cloned.value = valueJson.clone();
             } else if (value instanceof List<?> valueList) {
                 List<Object> deepList = new ArrayList<>();
                 for (Object item : valueList) {
@@ -3338,7 +3580,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
                         deepList.add(item);
                     }
                 }
-                cloned.setValue(deepList);
+                cloned.value = deepList;
             }
             return cloned;
         } catch (CloneNotSupportedException e) {

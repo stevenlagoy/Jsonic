@@ -122,7 +122,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * structure.
      * <p>
      * If the String representation is invalid, the value of this node will be
-     * {@code null}.
+     * set to the passed {@link Iterable} object itself.
      * 
      * @param key   key for this {@link JSONObject}
      * @param lines String representation of a JSON structure (like a JSON file)
@@ -143,7 +143,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * @param key the key for this node; must not be {@code null}
      */
     public JSONObject(@NotNull String key) {
-        this(key, (Object) null);
+        this(key, (Object) null); // Cast to object to disambiguate constructors
     }
 
     /**
@@ -779,6 +779,18 @@ public class JSONObject implements Iterable<Object>, Cloneable {
         return requireValue(Integer.class);
     }
 
+    /**
+     * Returns the value of this node as an {@link Integer}, throwing an
+     * {@link IllegalArgumentException} from the given supplier if the value is
+     * not an {@link Integer}. Does not search the tree; operates on this node's
+     * value directly.
+     *
+     * @param exceptionSupplier supplier of the exception to be thrown if the value
+     *                          is not an {@link Integer}
+     * @return the value as an {@link Integer}
+     * @throws IllegalArgumentException if this node's value is not an {@link Integer},
+     *                                  gotten from the supplier
+     */
     public @NotNull Integer requireInt(@NotNull Supplier<IllegalArgumentException> exceptionSupplier)
             throws IllegalArgumentException {
         return requireValue(Integer.class, exceptionSupplier);
@@ -810,6 +822,18 @@ public class JSONObject implements Iterable<Object>, Cloneable {
         return requireValue(Long.class);
     }
 
+    /**
+     * Returns the value of this node as a {@link Long}, throwing an
+     * {@link IllegalArgumentException} from the given supplier if the value is
+     * not a {@link Long}. Does not search the tree; operates on this node's
+     * value directly.
+     *
+     * @param exceptionSupplier supplier of the exception to be thrown if the value
+     *                          is not a {@link Long}
+     * @return the value as a {@link Long}
+     * @throws IllegalArgumentException if this node's value is not a {@link Long},
+     *                                  gotten from the supplier
+     */
     public @NotNull Long requireLong(@NotNull Supplier<IllegalArgumentException> exceptionSupplier)
             throws IllegalArgumentException {
         return requireValue(Long.class, exceptionSupplier);
@@ -841,6 +865,18 @@ public class JSONObject implements Iterable<Object>, Cloneable {
         return requireValue(Double.class);
     }
 
+    /**
+     * Returns the value of this node as a {@link Double}, throwing an
+     * {@link IllegalArgumentException} from the given supplier if the
+     * value is not a {@link Double}. Does not search the tree; operates
+     * on this node's value directly.
+     *
+     * @param exceptionSupplier supplier of the exception to be thrown if the value
+     *                          is not a {@link Double}.
+     * @return the value as a {@link Double}
+     * @throws IllegalArgumentException if this node's value is not a {@link Double},
+     *                                  gotten from the supplier
+     */
     public @NotNull Double requireDouble(@NotNull Supplier<IllegalArgumentException> exceptionSupplier)
             throws IllegalArgumentException {
         return requireValue(Double.class, exceptionSupplier);
@@ -872,6 +908,18 @@ public class JSONObject implements Iterable<Object>, Cloneable {
         return requireValue(Float.class);
     }
 
+    /**
+     * Returns the value of this node as a {@link Float}, throwing an
+     * {@link IllegalArgumentException} from the given supplier if the value is not
+     * a {@link Float}. Does not search the tree; operates on this node's value
+     * directly.
+     * 
+     * @param exceptionSupplier supplier of the exception to be thrown if this node's
+     *                          value is not a {@link Float}.
+     * @return the value as a {@link Float}
+     * @throws IllegalArgumentException if this node's value is not a {@link Float},
+     *                                  gotten from the supplier
+     */
     public @NotNull Float requireFloat(@NotNull Supplier<IllegalArgumentException> exceptionSupplier)
             throws IllegalArgumentException {
         return requireValue(Float.class, exceptionSupplier);
@@ -1184,7 +1232,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * subtree is returned.
      * 
      * @param keys              the keys to search for, in priority order
-     * @param exceptionSupplier Supplier of the exception to be thrown if no match
+     * @param exceptionSupplier supplier of the exception to be thrown if no match
      *                          is found for any of the keys
      * @return the first matching value found
      * @throws IllegalArgumentException if no node with any of the given keys exists
@@ -1712,7 +1760,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * throwing an {@link IllegalArgumentException} if the path is invalid or
      * unresolvable, or if the value is {@code null} or cannot be cast to a
      * {@link String}.
-     * 
+     *
      * @param path the path segments or a dot-separated path sequence
      * @return the {@link String} value
      * @throws IllegalArgumentException if the path is invalid or unresolvable, or
@@ -1855,6 +1903,20 @@ public class JSONObject implements Iterable<Object>, Cloneable {
                 + this.key + "'"));
     }
 
+    /**
+     * Searches the subtree rooted at this node for the first {@link Number} value
+     * stored under any of the given keys, tried in the order provided. Throws an
+     * {@link IllegalArgumentException} from the given supplier if no {@link Number}
+     * can be found with the given keys.
+     *
+     * @param keys the keys to search for, in priority order
+     * @param exceptionSupplier supplier of the exception to be thrown if no
+     *                          {@link Number} value can be found with the
+     *                          given keys
+     * @return the first matching {@link Number} value
+     * @throws IllegalArgumentException if no {@link Number} value can be found with
+     *                                  the given keys, gotten from the supplier
+     */
     public @NotNull Number requireNumber(@NotNull Collection<String> keys,
             @NotNull Supplier<IllegalArgumentException> exceptionSupplier) throws IllegalArgumentException {
         return findNumber(keys).orElseThrow(exceptionSupplier);
@@ -1871,7 +1933,19 @@ public class JSONObject implements Iterable<Object>, Cloneable {
         return findAt(path).filter(Number.class::isInstance).map(Number.class::cast);
     }
 
-    public @NotNull Number requireNumberAt(@NotNull String... path) {
+    /**
+     * Resolves the key path and returns the value cast to a {@link Number},
+     * throwing an {@link IllegalArgumentException} if the path is invalid or
+     * unresolvable, or if the value is {@code null} or cannot be cast to a
+     * {@link Number}.
+     *
+     * @param path the path segments or a dot-separated path sequence
+     * @return the {@link Number} value
+     * @throws IllegalArgumentException if the path is invalid or unresolvable, or
+     *                                  if the value is {@code null} or cannot be
+     *                                  cast to a {@link Number}
+     */
+    public @NotNull Number requireNumberAt(@NotNull String... path) throws IllegalArgumentException {
         return findNumberAt(path).orElseThrow(() -> new IllegalArgumentException("The path " + String.join(".", path)
                 + " could not be resolved or resulted in a null or non-Number value in subtree '" + this.key + "'"));
     }
@@ -2022,6 +2096,9 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * given supplier if no {@link Number} can be found with the given keys.
      * 
      * @param keys the keys to search for, in priority order
+     * @param exceptionSupplier supplier of the exception to be thrown if no
+     *                          {@link Integer} value can be found with any of the
+     *                          given keys
      * @return the first matching {@link Number} value cast to an {@link Integer}
      * @throws IllegalArgumentException if no {@link Number} value can be found with
      *                                  the given keys, gotten from the given
@@ -2207,6 +2284,8 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * given supplier if no {@link Number} can be found with the given keys.
      * 
      * @param keys the keys to search for, in priority order
+     * @param exceptionSupplier supplier of the exception to be thrown if no
+     *                          {@link Number} can be found with any of the given keys
      * @return the first matching {@link Number} value cast to an {@link Long}
      * @throws IllegalArgumentException if no {@link Number} value can be found with
      *                                  the given keys, gotten from the given
@@ -2392,6 +2471,8 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * given supplier if no {@link Number} can be found with the given keys.
      * 
      * @param keys the keys to search for, in priority order
+     * @param exceptionSupplier supplier of the exception to be thrown if no
+     *                          {@link Double} can be found with any of the given keys
      * @return the first matching {@link Number} value cast to an {@link Double}
      * @throws IllegalArgumentException if no {@link Number} value can be found with
      *                                  the given keys, gotten from the given
@@ -2577,6 +2658,8 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * given supplier if no {@link Number} can be found with the given keys.
      * 
      * @param keys the keys to search for, in priority order
+     * @param exceptionSupplier supplier of the exception to be thrown if no
+     *                          {@link Float} can be found with any of the given keys
      * @return the first matching {@link Number} value cast to an {@link Float}
      * @throws IllegalArgumentException if no {@link Number} value can be found with
      *                                  the given keys, gotten from the given

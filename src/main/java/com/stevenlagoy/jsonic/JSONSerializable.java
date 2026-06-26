@@ -1,14 +1,15 @@
 package com.stevenlagoy.jsonic;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
+import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Marker interface that enables JSON serialization and deserialization for
@@ -65,7 +66,7 @@ public interface JSONSerializable<T extends JSONSerializable<T>> {
      *
      * @return a {@code JSONObject} representing this object's state
      */
-    public @NotNull JSONObject toJson();
+    @NotNull JSONObject toJson();
 
     /**
      * Reconstructs this object's state from the given {@link JSONObject} and
@@ -83,7 +84,7 @@ public interface JSONSerializable<T extends JSONSerializable<T>> {
      *             to fields of this object; may be partial
      * @return this object, after applying fields from {@code json}
      */
-    public @NotNull T fromJson(@NotNull JSONObject json);
+    @NotNull T fromJson(@NotNull JSONObject json);
 
     /**
      * Converts a {@link Collection} to a {@link List} of {@link JSONObject}s.
@@ -103,7 +104,7 @@ public interface JSONSerializable<T extends JSONSerializable<T>> {
      *         never {@code null}
      * @see #toJson(Object)
      */
-    public static @NotNull List<JSONObject> collectionToJson(@NotNull Collection<?> collection) {
+    static @NotNull List<JSONObject> collectionToJson(@NotNull Collection<?> collection) {
         List<JSONObject> json = new ArrayList<>();
         for (Object item : collection) {
             if (item instanceof JSONSerializable<?> JSONSerializable) {
@@ -136,7 +137,7 @@ public interface JSONSerializable<T extends JSONSerializable<T>> {
      * @throws IllegalArgumentException if {@code array} is not an array type
      * @see #toJson(Object)
      */
-    public static @NotNull List<JSONObject> arrayToJson(@NotNull Object array) {
+    static @NotNull List<JSONObject> arrayToJson(@NotNull Object array) {
         int length = Array.getLength(array);
         List<JSONObject> json = new ArrayList<>();
         for (int i = 0; i < length; i++) {
@@ -190,7 +191,7 @@ public interface JSONSerializable<T extends JSONSerializable<T>> {
      *         value
      * @see #toJson(Object)
      */
-    public static @NotNull JSONObject classJson(@NotNull Class<? extends Object> clazz) {
+    static @NotNull JSONObject classJson(@NotNull Class<?> clazz) {
         List<JSONObject> fields = new ArrayList<>();
         for (Field f : clazz.getDeclaredFields()) {
             int modifiers = f.getModifiers();
@@ -214,8 +215,18 @@ public interface JSONSerializable<T extends JSONSerializable<T>> {
      *         value is a list of field name-value pairs
      * @see #toJson(Object, Collection)
      */
-    public static @NotNull JSONObject toJson(@NotNull Object o) {
-        return toJson(o, Arrays.asList(o.getClass().getDeclaredFields()));
+    static @NotNull JSONObject toJson(@NotNull Object o) {
+        return toJson(o, getAllFields(o.getClass()));
+    }
+
+    private static @NotNull List<Field> getAllFields(@NotNull Class<?> clazz) {
+        List<Field> fields = new ArrayList<>();
+        Class<?> current = clazz;
+        while (current != null) {
+            fields.addAll(Arrays.asList(current.getDeclaredFields()));
+            current = current.getSuperclass();
+        }
+        return fields;
     }
 
     /**
@@ -244,7 +255,7 @@ public interface JSONSerializable<T extends JSONSerializable<T>> {
      * @return a {@code JSONObject} representing the specified fields and their
      *         current values
      */
-    public static @NotNull JSONObject toJson(@NotNull Object o, @NotNull Collection<Field> fields) {
+    static @NotNull JSONObject toJson(@NotNull Object o, @NotNull Collection<Field> fields) {
         List<JSONObject> jsonFields = new ArrayList<>();
         for (Field f : fields) {
             Object value;
@@ -253,6 +264,8 @@ public interface JSONSerializable<T extends JSONSerializable<T>> {
                 value = f.get(o);
             } catch (IllegalAccessException e) {
                 continue;
+            } catch (InaccessibleObjectException e) {
+                return new JSONObject(String.valueOf(o.hashCode()), o);
             }
             if (value == null) {
                 jsonFields.add(new JSONObject(f.getName(), null));

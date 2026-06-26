@@ -6,16 +6,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import java.nio.file.Path;
 import java.util.List;
-import java.util.Optional;
 
 import org.junit.Test;
 
 /**
  * Tests for {@link JSONParser} exercised through the {@link JSONObject}
  * constructors, which are the only public entry points to the parser.
- *
  * <p>
  * Coverage targets:
  * <ul>
@@ -535,8 +532,8 @@ public class JSONParserTest {
     @Test
     public void parseObject_valueWithColonInString() {
         // Colon inside a value string should not be confused with pair separator
-        JSONObject result = JSONParser.parse("root", "{\"url\": \"http://example.com\"}");
-        assertEquals("http://example.com", result.findString("url").orElse(null));
+        JSONObject result = JSONParser.parse("root", "{\"url\": \"https://example.com\"}");
+        assertEquals("https://example.com", result.findString("url").orElse(null));
     }
 
     @Test

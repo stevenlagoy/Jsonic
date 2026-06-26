@@ -87,7 +87,7 @@ class JSONStringifier {
                     result.add("\t".repeat(depth) + currentLine);
                     currentLine = new StringBuilder();
                 }
-                case ':' -> currentLine.append(" : ");
+                case ':' -> currentLine.append(": ");
                 default -> {
                     if (!Character.isWhitespace(c)) {
                         currentLine.append(c);
@@ -108,7 +108,7 @@ class JSONStringifier {
      * Dispatches to the appropriate method based on the runtime type of
      * {@code value}:
      * <ul>
-     * <li>{@code null} → {@code null}</li>
+     * <li>{@code null} → {@code "null"}</li>
      * <li>{@code String} → quoted and escaped string</li>
      * <li>{@code Number} or {@code Boolean} → {@link Object#toString()}</li>
      * <li>{@code List<JSONObject>} → JSON object body {@code {...}}</li>
@@ -121,7 +121,7 @@ class JSONStringifier {
      */
     private static String stringifyValue(Object value) {
         if (value == null) {
-            return null;
+            return "null";
         } else if (value instanceof String s) {
             return "\"" + escapeString(s) + "\"";
         } else if (value instanceof Number || value instanceof Boolean) {
@@ -131,7 +131,7 @@ class JSONStringifier {
         } else if (value instanceof JSONObject json) {
             // Edge case from manual construction: never happens by reading a JSON file
             return stringifyObject(json);
-        } else if (value instanceof JSONSerializable serializable) {
+        } else if (value instanceof JSONSerializable<?> serializable) {
             return stringifyObject(serializable.toJson());
         }
         // Fallback: stringify unknown types as quoted strings
@@ -147,7 +147,7 @@ class JSONStringifier {
      * JSON array. Due to type erasure, empty lists will be assumed to be a JSON
      * array rather than a JSON object, producing {@code []} rather than {@code {}}.
      * If a list should be treated as a JSON object, it is recommended to put a
-     * marker object inside, like {@code {"_" : ""}}.
+     * marker object inside, like {@code {"_": ""}}.
      *
      * @param list the list to stringify; must not be {@code null}
      * @return a JSON object body {@code {...}} or array {@code [...]} string

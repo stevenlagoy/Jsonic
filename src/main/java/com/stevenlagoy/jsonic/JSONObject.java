@@ -1,5 +1,6 @@
 package com.stevenlagoy.jsonic;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -68,7 +69,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
     private @NotNull String key;
 
     /**
-     * The value of this JSON node. May be any of the following:
+     * The value of this JSON node. One of the following:
      * <ul>
      * <li>{@code null} — represents a JSON {@code null}</li>
      * <li>{@link String} — represents a JSON string</li>
@@ -103,9 +104,9 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * {@code null}.
      *
      * @param path path to a valid JSON file
-     * @throws RuntimeException if the file cannot be read or parsed
+     * @throws IOException if the file cannot be read or parsed
      */
-    public JSONObject(@NotNull Path path) {
+    public JSONObject(@NotNull Path path) throws IOException {
         List<String> contents = FileOperations.readFile(path);
         Path fileName = path.getFileName();
         String key = fileName.toString();
@@ -129,7 +130,11 @@ public class JSONObject implements Iterable<Object>, Cloneable {
     public JSONObject(@NotNull String key, @Nullable Iterable<String> lines) {
         JSONObject json = JSONParser.parse(key, lines);
         this.key = json.getKey();
-        this.value = json.getValue();
+        if (json.getValue() != null) {
+            this.value = json.getValue();
+        } else {
+            this.value = lines;
+        }
     }
 
     /**
@@ -329,13 +334,13 @@ public class JSONObject implements Iterable<Object>, Cloneable {
     }
 
     /**
-     * Returns {@code true} if all of the given keys are present anywhere in the
+     * Returns {@code true} if all the given keys are present anywhere in the
      * subtree rooted at this node. Equivalent to calling {@link #hasKey(String)}
      * for each key and returning {@code true} if all of these calls return
      * {@code true}.
      * 
      * @param keys the keys to search for
-     * @return {@code true} if all of the given keys exist in this subtree;
+     * @return {@code true} if all the given keys exist in this subtree;
      *         {@code false} otherwise
      */
     public boolean hasAllKeys(@NotNull String... keys) {
@@ -343,7 +348,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
     }
 
     /**
-     * Requires that all of the given keys are present anywhere in the subtree
+     * Requires that all the given keys are present anywhere in the subtree
      * rooted at this node. Equivalent to calling {@link #requireKey(String)} for
      * each key.
      * 
@@ -379,7 +384,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      *                                  subtree
      */
     public void requireAnyKey(@NotNull Collection<String> keys) throws IllegalArgumentException {
-        if (!keys.stream().anyMatch(this::hasKey)) {
+        if (keys.stream().noneMatch(this::hasKey)) {
             throw new IllegalArgumentException("The keys, '" + String.join("', '", keys)
                     + "', one of which is required, are all missing in subtree '" + this.key + "'");
         }
@@ -405,13 +410,13 @@ public class JSONObject implements Iterable<Object>, Cloneable {
     }
 
     /**
-     * Returns {@code true} if all of the given keys are present anywhere in the
+     * Returns {@code true} if all the given keys are present anywhere in the
      * subtree rooted at this node. Equivalent to calling {@link #hasKey(String)}
      * for each key and returning {@code true} if all of these calls return
      * {@code true}.
      * 
      * @param keys the keys to search for
-     * @return {@code true} if all of the given keys exist in this subtree;
+     * @return {@code true} if all the given keys exist in this subtree;
      *         {@code false} otherwise
      */
     public boolean hasAllKeys(@NotNull Collection<String> keys) {
@@ -419,7 +424,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
     }
 
     /**
-     * Requires that all of the given keys are present anywhere in the subtree
+     * Requires that all the given keys are present anywhere in the subtree
      * rooted at this node. Equivalent to calling {@link #requireKey(String)} for
      * each key.
      * 
@@ -437,7 +442,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
     }
 
     /**
-     * Requires that all of the given keys are present anywhere in the subtree
+     * Requires that all the given keys are present anywhere in the subtree
      * rooted at this node. Equivalent to calling {@link #requireKey(String)} for
      * each key. If any key is not present, an {@link IllegalArgumentException} from
      * the given supplier will be thrown.
@@ -481,7 +486,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * @throws IllegalArgumentException if the path is invalid or the nested object
      *                                  is missing or fails constraints
      */
-    public void requireStructure(Consumer<JSONObject> validator, String... path) throws IllegalArgumentException {
+    public void requireStructure(@NotNull Consumer<JSONObject> validator, @NotNull String... path) throws IllegalArgumentException {
         JSONObject nested = requireJsonAt(path);
         validator.accept(nested);
     }
@@ -552,7 +557,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
     /**
      * Returns the value of a direct child node of this node as an {@link Object}.
      * The returned value may be any valid JSON type, including {@code null}. Prefer
-     * the typed accessors ({@link #getString(String)}, {@link #getNumber(String)},
+     * the typed accessors ({@link #getString()}, {@link #getNumber()},
      * etc.) when the expected type is known.
      * 
      * @param key the key of a child node
@@ -560,10 +565,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      */
     public @Nullable Object getValue(@NotNull String key) {
         Optional<JSONObject> child = childStream().filter(node -> node.getKey().equals(key)).findFirst();
-        if (child.isPresent()) {
-            return child.get().getValue();
-        }
-        return null;
+        return child.map(JSONObject::getValue).orElse(null);
     }
 
     /**
@@ -664,7 +666,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      */
     public <R> @NotNull R requireValue(@NotNull Class<R> type, Supplier<IllegalArgumentException> exceptionSupplier)
             throws IllegalArgumentException {
-        if (value != null && type.isInstance(value)) {
+        if (type.isInstance(value)) {
             return type.cast(value);
         }
         throw exceptionSupplier.get();
@@ -688,7 +690,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * 
      * @return the value as a {@link String}
      * @throws IllegalArgumentException if this node's value is null, or cannot be
-     *                                  casted to a {@link String}
+     *                                  cast to a {@link String}
      */
     public @NotNull String requireString() throws IllegalArgumentException {
         return requireValue(String.class);
@@ -701,11 +703,11 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * value directly.
      * 
      * @param exceptionSupplier supplier of the exception to be thrown if the value
-     *                          is {@code null} or cannot be casted to a
+     *                          is {@code null} or cannot be cast to a
      *                          {@link String}
      * @return the value as a {@link String}
      * @throws IllegalArgumentException if this node's value is null, or cannot be
-     *                                  casted to a {@link String}
+     *                                  cast to a {@link String}
      */
     public @NotNull String requireString(@NotNull Supplier<IllegalArgumentException> exceptionSupplier)
             throws IllegalArgumentException {
@@ -906,11 +908,11 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * node's value directly.
      * 
      * @param exceptionSupplier supplier of the exception to be thrown if the value
-     *                          is {@code null} or cannot be casted to a
+     *                          is {@code null} or cannot be cast to a
      *                          {@link Boolean}
      * @return the value as a {@link Boolean}
      * @throws IllegalArgumentException if this node's value is null, or cannot be
-     *                                  casted to a {@link Boolean}
+     *                                  cast to a {@link Boolean}
      */
     public @NotNull Boolean requireBoolean(@NotNull Supplier<IllegalArgumentException> exceptionSupplier)
             throws IllegalArgumentException {
@@ -949,11 +951,11 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * node's value directly.
      * 
      * @param exceptionSupplier supplier of the exception to be thrown if the value
-     *                          is {@code null} or cannot be casted to a
+     *                          is {@code null} or cannot be cast to a
      *                          {@link JSONObject}
      * @return the value as a {@link JSONObject}
      * @throws IllegalArgumentException if this node's value is null, or cannot be
-     *                                  casted to a {@link JSONObject}
+     *                                  cast to a {@link JSONObject}
      */
     public @NotNull JSONObject requireJson(@NotNull Supplier<IllegalArgumentException> exceptionSupplier)
             throws IllegalArgumentException {
@@ -1001,11 +1003,11 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * value directly.
      * 
      * @param exceptionSupplier supplier of the exception to be thrown if the value
-     *                          is {@code null} or cannot be casted to a
+     *                          is {@code null} or cannot be cast to a
      *                          {@link List}
      * @return the value as a {@link List}
      * @throws IllegalArgumentException if this node's value is null, or cannot be
-     *                                  casted to a {@link List}
+     *                                  cast to a {@link List}
      */
     public @NotNull List<?> requireArray(@NotNull Supplier<IllegalArgumentException> exceptionSupplier)
             throws IllegalArgumentException {
@@ -1045,7 +1047,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
         }
         if (value instanceof Collection<?> valueCollection) {
             List<Object> values = getValues(valueCollection, key);
-            if (values.isEmpty()) {
+            if (values.isEmpty() || values.get(0) == null) {
                 return Optional.empty();
             }
             return Optional.of(values.get(0));
@@ -1295,6 +1297,13 @@ public class JSONObject implements Iterable<Object>, Cloneable {
             if (type.isInstance(value)) {
                 return Optional.of(type.cast(value));
             }
+            else if (value instanceof List<?> list) {
+                for (Object item : list) {
+                    if (type.isInstance(item)) {
+                        return Optional.of(type.cast(item));
+                    }
+                }
+            }
         }
         return Optional.empty();
     }
@@ -1313,10 +1322,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      */
     public <R> @Nullable R find(@NotNull Class<R> type, @NotNull String key, @NotNull Supplier<R> defaultSupplier) {
         Optional<R> res = find(type, key);
-        if (res.isPresent()) {
-            return res.get();
-        }
-        return defaultSupplier.get();
+        return res.orElseGet(defaultSupplier);
     }
 
     /**
@@ -1405,10 +1411,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
     public <R> @Nullable R find(@NotNull Class<R> type, @NotNull Collection<String> keys,
             @NotNull Supplier<R> defaultSupplier) {
         Optional<R> res = find(type, keys);
-        if (res.isPresent()) {
-            return res.get();
-        }
-        return defaultSupplier.get();
+        return res.orElseGet(defaultSupplier);
     }
 
     /**
@@ -1434,7 +1437,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * Resolves and returns the {@link JSONObject} node situated at the end of the
      * specified path segments. Path strings can be supplied as explicit varargs,
      * or a single string split by dots (e.g., {@code "person.address.city"}). To
-     * include dots in a segment of the path, preceed each with a backslash (e.g.,
+     * include dots in a segment of the path, precede each with a backslash (e.g.,
      * {@code "dates.01\.10.temperature"}).
      * <p>
      * If the path's first element matches this node's actual root key, navigation
@@ -1490,7 +1493,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * Resolves and returns the {@link JSONObject} node situated at the end of the
      * specified path segments. Path strings can be supplied as explicit varargs,
      * or a single string split by dots (e.g., {@code "person.address.city"}). To
-     * include dots in a segment of the path, preceed each with a backslash (e.g.,
+     * include dots in a segment of the path, precede each with a backslash (e.g.,
      * {@code "dates.01\.10.temperature"}).
      * <p>
      * If the path is invalid or cannot be resolved, throws an
@@ -1511,9 +1514,9 @@ public class JSONObject implements Iterable<Object>, Cloneable {
 
     /**
      * Resolves the given key path and returns the target raw unwrapped value. Path
-     * strings can be supplied as explicity varargs, or a single string split by
+     * strings can be supplied as explicit varargs, or a single string split by
      * dots (e.g., {@code "person.address.city"}). To include dots in a segment of
-     * the path, preceed each with a backslash (e.g.,
+     * the path, precede each with a backslash (e.g.,
      * {@code "dates.01\.10.temperature"}).
      *
      * @param path the path segments or a dot-separated path sequence
@@ -1526,9 +1529,9 @@ public class JSONObject implements Iterable<Object>, Cloneable {
 
     /**
      * Resolves the given key path and returns the target raw unwrapped value. Path
-     * strings can be supplied as explicity varargs, or a single string split by
+     * strings can be supplied as explicit varargs, or a single string split by
      * dots (e.g., {@code "person.address.city"}). To include dots in a segment of
-     * the path, preceed each with a backslash (e.g.,
+     * the path, precede each with a backslash (e.g.,
      * {@code "dates.01\.10.temperature"}).
      * <p>
      * If the path is invalid or cannot be resolved, throws an
@@ -1583,7 +1586,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      */
     public @NotNull String requireString(@NotNull String key) throws IllegalArgumentException {
         return findString(key).orElseThrow(() -> new IllegalArgumentException("The required String value '" + key
-                + "' could not be found, could not be casted, or was null for object '" + this.key + "'"));
+                + "' could not be found, could not be cast, or was null for object '" + this.key + "'"));
     }
 
     /**
@@ -1670,7 +1673,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      */
     public @NotNull String requireString(@NotNull Collection<String> keys) throws IllegalArgumentException {
         return findString(keys).orElseThrow(() -> new IllegalArgumentException("The keys, " + String.join("', '", keys)
-                + "', one of which is required of type String, are all missing, null, or could not be casted in subtree '"
+                + "', one of which is required of type String, are all missing, null, or could not be cast in subtree '"
                 + this.key + "'"));
     }
 
@@ -1707,14 +1710,14 @@ public class JSONObject implements Iterable<Object>, Cloneable {
     /**
      * Resolves the key path and returns the value cast to a {@link String},
      * throwing an {@link IllegalArgumentException} if the path is invalid or
-     * unresolvable, or if the value is {@code null} or cannot be casted to a
+     * unresolvable, or if the value is {@code null} or cannot be cast to a
      * {@link String}.
      * 
      * @param path the path segments or a dot-separated path sequence
      * @return the {@link String} value
      * @throws IllegalArgumentException if the path is invalid or unresolvable, or
      *                                  if the value is {@code null} or cannot be
-     *                                  casted to a {@link String}
+     *                                  cast to a {@link String}
      */
     public @NotNull String requireStringAt(@NotNull String... path) {
         return findStringAt(path).orElseThrow(() -> new IllegalArgumentException("The path " + String.join(".", path)
@@ -1761,7 +1764,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      */
     public @NotNull Number requireNumber(@NotNull String key) throws IllegalArgumentException {
         return findNumber(key).orElseThrow(() -> new IllegalArgumentException("The required Number value '" + key +
-                "' could not be found, could not be casted, or was null for object '" + this.key + "'"));
+                "' could not be found, could not be cast, or was null for object '" + this.key + "'"));
     }
 
     /**
@@ -1848,7 +1851,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      */
     public @NotNull Number requireNumber(@NotNull Collection<String> keys) throws IllegalArgumentException {
         return findNumber(keys).orElseThrow(() -> new IllegalArgumentException("The keys, " + String.join("', '", keys)
-                + "', one of which is required of type Number, are all missing, null, or could not be casted in subtree '"
+                + "', one of which is required of type Number, are all missing, null, or could not be cast in subtree '"
                 + this.key + "'"));
     }
 
@@ -1909,13 +1912,13 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * {@link IllegalArgumentException} if not found.
      * 
      * @param key the key to search for
-     * @return the first matching {@link Number} value casted to an {@link Integer}
+     * @return the first matching {@link Number} value cast to an {@link Integer}
      * @throws IllegalArgumentException if no {@link Number} value can be found with
      *                                  the given key
      */
     public @NotNull Integer requireInt(@NotNull String key) throws IllegalArgumentException {
         return findInt(key).orElseThrow(() -> new IllegalArgumentException("The required Integer value '" + key +
-                "' could not be found, could not be casted, or was null for object '" + this.key + "'"));
+                "' could not be found, could not be cast, or was null for object '" + this.key + "'"));
     }
 
     /**
@@ -1926,7 +1929,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * @param key               the key to search for
      * @param exceptionSupplier supplier of the exception to be thrown if no
      *                          {@link String} value can be found with the given key
-     * @return the first matching {@link Number} value casted to an {@link Integer}
+     * @return the first matching {@link Number} value cast to an {@link Integer}
      * @throws IllegalArgumentException if no {@link Number} value can be found with
      *                                  the given key, gotten from the given
      *                                  supplier
@@ -1957,7 +1960,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * {@link Number} can be found with the given keys.
      * 
      * @param keys the keys to search for, in priority order
-     * @return the first matching {@link Number} value casted to an {@link Integer}
+     * @return the first matching {@link Number} value cast to an {@link Integer}
      * @throws IllegalArgumentException if no {@link Number} value can be found with
      *                                  the given keys
      */
@@ -2002,13 +2005,13 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * {@link Number} can be found with the given keys.
      * 
      * @param keys the keys to search for, in priority order
-     * @return the first matching {@link Number} value casted to an {@link Integer}
+     * @return the first matching {@link Number} value cast to an {@link Integer}
      * @throws IllegalArgumentException if no {@link Number} value can be found with
      *                                  the given keys
      */
     public @NotNull Integer requireInt(@NotNull Collection<String> keys) throws IllegalArgumentException {
         return findInt(keys).orElseThrow(() -> new IllegalArgumentException("The keys, " + String.join("', '", keys)
-                + "', one of which is required of type Integer, are all missing, null, or could not be casted in subtree '"
+                + "', one of which is required of type Integer, are all missing, null, or could not be cast in subtree '"
                 + this.key + "'"));
     }
 
@@ -2019,7 +2022,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * given supplier if no {@link Number} can be found with the given keys.
      * 
      * @param keys the keys to search for, in priority order
-     * @return the first matching {@link Number} value casted to an {@link Integer}
+     * @return the first matching {@link Number} value cast to an {@link Integer}
      * @throws IllegalArgumentException if no {@link Number} value can be found with
      *                                  the given keys, gotten from the given
      *                                  supplier
@@ -2043,14 +2046,14 @@ public class JSONObject implements Iterable<Object>, Cloneable {
     /**
      * Resolves the key path and returns the value cast to an {@link Integer},
      * throwing an {@link IllegalArgumentException} if the path is invalid or
-     * unresolvable, or if the value is {@code null} or cannot be casted to an
+     * unresolvable, or if the value is {@code null} or cannot be cast to an
      * {@link Integer}.
      * 
      * @param path the path segments or a dot-separated path sequence
      * @return the {@link Integer} value
      * @throws IllegalArgumentException if the path is invalid or unresolvable, or
      *                                  if the value is {@code null} or cannot be
-     *                                  casted to an {@link Integer}
+     *                                  cast to an {@link Integer}
      */
     public @NotNull Integer requireIntAt(@NotNull String... path) throws IllegalArgumentException {
         return findIntAt(path).orElseThrow(() -> new IllegalArgumentException("The path " + String.join(".", path)
@@ -2094,13 +2097,13 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * {@link IllegalArgumentException} if not found.
      * 
      * @param key the key to search for
-     * @return the first matching {@link Number} value casted to an {@link Long}
+     * @return the first matching {@link Number} value cast to an {@link Long}
      * @throws IllegalArgumentException if no {@link Number} value can be found with
      *                                  the given key
      */
     public @NotNull Long requireLong(@NotNull String key) throws IllegalArgumentException {
         return findLong(key).orElseThrow(() -> new IllegalArgumentException("The required Long value '" + key +
-                "' could not be found, could not be casted, or was null for object '" + this.key + "'"));
+                "' could not be found, could not be cast, or was null for object '" + this.key + "'"));
     }
 
     /**
@@ -2111,7 +2114,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * @param key               the key to search for
      * @param exceptionSupplier supplier of the exception to be thrown if no
      *                          {@link String} value can be found with the given key
-     * @return the first matching {@link Number} value casted to an {@link Long}
+     * @return the first matching {@link Number} value cast to an {@link Long}
      * @throws IllegalArgumentException if no {@link Number} value can be found with
      *                                  the given key, gotten from the given
      *                                  supplier
@@ -2142,7 +2145,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * {@link Number} can be found with the given keys.
      * 
      * @param keys the keys to search for, in priority order
-     * @return the first matching {@link Number} value casted to an {@link Long}
+     * @return the first matching {@link Number} value cast to an {@link Long}
      * @throws IllegalArgumentException if no {@link Number} value can be found with
      *                                  the given keys
      */
@@ -2187,13 +2190,13 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * {@link Number} can be found with the given keys.
      * 
      * @param keys the keys to search for, in priority order
-     * @return the first matching {@link Number} value casted to an {@link Long}
+     * @return the first matching {@link Number} value cast to an {@link Long}
      * @throws IllegalArgumentException if no {@link Number} value can be found with
      *                                  the given keys
      */
     public @NotNull Long requireLong(@NotNull Collection<String> keys) throws IllegalArgumentException {
         return findLong(keys).orElseThrow(() -> new IllegalArgumentException("The keys, " + String.join("', '", keys)
-                + "', one of which is required of type Long, are all missing, null, or could not be casted in subtree '"
+                + "', one of which is required of type Long, are all missing, null, or could not be cast in subtree '"
                 + this.key + "'"));
     }
 
@@ -2204,7 +2207,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * given supplier if no {@link Number} can be found with the given keys.
      * 
      * @param keys the keys to search for, in priority order
-     * @return the first matching {@link Number} value casted to an {@link Long}
+     * @return the first matching {@link Number} value cast to an {@link Long}
      * @throws IllegalArgumentException if no {@link Number} value can be found with
      *                                  the given keys, gotten from the given
      *                                  supplier
@@ -2228,14 +2231,14 @@ public class JSONObject implements Iterable<Object>, Cloneable {
     /**
      * Resolves the key path and returns the value cast to an {@link Long},
      * throwing an {@link IllegalArgumentException} if the path is invalid or
-     * unresolvable, or if the value is {@code null} or cannot be casted to an
+     * unresolvable, or if the value is {@code null} or cannot be cast to an
      * {@link Long}.
      * 
      * @param path the path segments or a dot-separated path sequence
      * @return the {@link Long} value
      * @throws IllegalArgumentException if the path is invalid or unresolvable, or
      *                                  if the value is {@code null} or cannot be
-     *                                  casted to an {@link Long}
+     *                                  cast to an {@link Long}
      */
     public @NotNull Long requireLongAt(@NotNull String... path) {
         return findLongAt(path).orElseThrow(() -> new IllegalArgumentException("The path " + String.join(".", path)
@@ -2279,13 +2282,13 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * {@link IllegalArgumentException} if not found.
      * 
      * @param key the key to search for
-     * @return the first matching {@link Number} value casted to an {@link Double}
+     * @return the first matching {@link Number} value cast to an {@link Double}
      * @throws IllegalArgumentException if no {@link Number} value can be found with
      *                                  the given key
      */
     public @NotNull Double requireDouble(@NotNull String key) throws IllegalArgumentException {
         return findDouble(key).orElseThrow(() -> new IllegalArgumentException("The required Double value '" + key +
-                "' could not be found, could not be casted, or was null for object '" + this.key + "'"));
+                "' could not be found, could not be cast, or was null for object '" + this.key + "'"));
     }
 
     /**
@@ -2296,7 +2299,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * @param key               the key to search for
      * @param exceptionSupplier supplier of the exception to be thrown if no
      *                          {@link String} value can be found with the given key
-     * @return the first matching {@link Number} value casted to an {@link Double}
+     * @return the first matching {@link Number} value cast to an {@link Double}
      * @throws IllegalArgumentException if no {@link Number} value can be found with
      *                                  the given key, gotten from the given
      *                                  supplier
@@ -2327,7 +2330,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * {@link Number} can be found with the given keys.
      * 
      * @param keys the keys to search for, in priority order
-     * @return the first matching {@link Number} value casted to an {@link Double}
+     * @return the first matching {@link Number} value cast to an {@link Double}
      * @throws IllegalArgumentException if no {@link Number} value can be found with
      *                                  the given keys
      */
@@ -2372,13 +2375,13 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * {@link Number} can be found with the given keys.
      * 
      * @param keys the keys to search for, in priority order
-     * @return the first matching {@link Number} value casted to an {@link Double}
+     * @return the first matching {@link Number} value cast to an {@link Double}
      * @throws IllegalArgumentException if no {@link Number} value can be found with
      *                                  the given keys
      */
     public @NotNull Double requireDouble(@NotNull Collection<String> keys) throws IllegalArgumentException {
         return findDouble(keys).orElseThrow(() -> new IllegalArgumentException("The keys, " + String.join("', '", keys)
-                + "', one of which is required of type Double, are all missing, null, or could not be casted in subtree '"
+                + "', one of which is required of type Double, are all missing, null, or could not be cast in subtree '"
                 + this.key + "'"));
     }
 
@@ -2389,7 +2392,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * given supplier if no {@link Number} can be found with the given keys.
      * 
      * @param keys the keys to search for, in priority order
-     * @return the first matching {@link Number} value casted to an {@link Double}
+     * @return the first matching {@link Number} value cast to an {@link Double}
      * @throws IllegalArgumentException if no {@link Number} value can be found with
      *                                  the given keys, gotten from the given
      *                                  supplier
@@ -2413,14 +2416,14 @@ public class JSONObject implements Iterable<Object>, Cloneable {
     /**
      * Resolves the key path and returns the value cast to an {@link Double},
      * throwing an {@link IllegalArgumentException} if the path is invalid or
-     * unresolvable, or if the value is {@code null} or cannot be casted to an
+     * unresolvable, or if the value is {@code null} or cannot be cast to an
      * {@link Double}.
      * 
      * @param path the path segments or a dot-separated path sequence
      * @return the {@link Double} value
      * @throws IllegalArgumentException if the path is invalid or unresolvable, or
      *                                  if the value is {@code null} or cannot be
-     *                                  casted to an {@link Double}
+     *                                  cast to an {@link Double}
      */
     public @NotNull Double requireDoubleAt(@NotNull String... path) {
         return findDoubleAt(path).orElseThrow(() -> new IllegalArgumentException("The path " + String.join(".", path)
@@ -2464,13 +2467,13 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * {@link IllegalArgumentException} if not found.
      * 
      * @param key the key to search for
-     * @return the first matching {@link Number} value casted to an {@link Float}
+     * @return the first matching {@link Number} value cast to an {@link Float}
      * @throws IllegalArgumentException if no {@link Number} value can be found with
      *                                  the given key
      */
     public @NotNull Float requireFloat(@NotNull String key) throws IllegalArgumentException {
         return findFloat(key).orElseThrow(() -> new IllegalArgumentException("The required Float value '" + key +
-                "' could not be found, could not be casted, or was null for object '" + this.key + "'"));
+                "' could not be found, could not be cast, or was null for object '" + this.key + "'"));
     }
 
     /**
@@ -2481,7 +2484,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * @param key               the key to search for
      * @param exceptionSupplier supplier of the exception to be thrown if no
      *                          {@link String} value can be found with the given key
-     * @return the first matching {@link Number} value casted to an {@link Float}
+     * @return the first matching {@link Number} value cast to an {@link Float}
      * @throws IllegalArgumentException if no {@link Number} value can be found with
      *                                  the given key, gotten from the given
      *                                  supplier
@@ -2512,7 +2515,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * {@link Number} can be found with the given keys.
      * 
      * @param keys the keys to search for, in priority order
-     * @return the first matching {@link Number} value casted to an {@link Float}
+     * @return the first matching {@link Number} value cast to an {@link Float}
      * @throws IllegalArgumentException if no {@link Number} value can be found with
      *                                  the given keys
      */
@@ -2557,13 +2560,13 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * {@link Number} can be found with the given keys.
      * 
      * @param keys the keys to search for, in priority order
-     * @return the first matching {@link Number} value casted to an {@link Float}
+     * @return the first matching {@link Number} value cast to an {@link Float}
      * @throws IllegalArgumentException if no {@link Number} value can be found with
      *                                  the given keys
      */
     public @NotNull Float requireFloat(@NotNull Collection<String> keys) throws IllegalArgumentException {
         return findFloat(keys).orElseThrow(() -> new IllegalArgumentException("The keys, " + String.join("', '", keys)
-                + "', one of which is required of type Float, are all missing, null, or could not be casted in subtree '"
+                + "', one of which is required of type Float, are all missing, null, or could not be cast in subtree '"
                 + this.key + "'"));
     }
 
@@ -2574,7 +2577,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * given supplier if no {@link Number} can be found with the given keys.
      * 
      * @param keys the keys to search for, in priority order
-     * @return the first matching {@link Number} value casted to an {@link Float}
+     * @return the first matching {@link Number} value cast to an {@link Float}
      * @throws IllegalArgumentException if no {@link Number} value can be found with
      *                                  the given keys, gotten from the given
      *                                  supplier
@@ -2598,14 +2601,14 @@ public class JSONObject implements Iterable<Object>, Cloneable {
     /**
      * Resolves the key path and returns the value cast to an {@link Float},
      * throwing an {@link IllegalArgumentException} if the path is invalid or
-     * unresolvable, or if the value is {@code null} or cannot be casted to an
+     * unresolvable, or if the value is {@code null} or cannot be cast to an
      * {@link Float}.
      * 
      * @param path the path segments or a dot-separated path sequence
      * @return the {@link Float} value
      * @throws IllegalArgumentException if the path is invalid or unresolvable, or
      *                                  if the value is {@code null} or cannot be
-     *                                  casted to an {@link Float}
+     *                                  cast to an {@link Float}
      */
     public @NotNull Float requireFloatAt(@NotNull String... path) {
         return findFloatAt(path).orElseThrow(() -> new IllegalArgumentException("The path " + String.join(".", path)
@@ -2652,7 +2655,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      */
     public @NotNull Boolean requireBoolean(@NotNull String key) throws IllegalArgumentException {
         return findBoolean(key).orElseThrow(() -> new IllegalArgumentException("The required Boolean value '" + key
-                + "' could not be found, could not be casted, or was null for object '" + this.key + "'"));
+                + "' could not be found, could not be cast, or was null for object '" + this.key + "'"));
     }
 
     /**
@@ -2743,7 +2746,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      */
     public @NotNull Boolean requireBoolean(@NotNull Collection<String> keys) throws IllegalArgumentException {
         return findBoolean(keys).orElseThrow(() -> new IllegalArgumentException("The keys, " + String.join("', '", keys)
-                + "', one of which is required of type Boolean, are all missing, null, or could not be casted in subtree '"
+                + "', one of which is required of type Boolean, are all missing, null, or could not be cast in subtree '"
                 + this.key + "'"));
     }
 
@@ -2782,14 +2785,14 @@ public class JSONObject implements Iterable<Object>, Cloneable {
     /**
      * Resolves the key path and returns the value cast to a {@link Boolean},
      * throwing an {@link IllegalArgumentException} if the path is invalid or
-     * unresolvable, or if the value is {@code null} or cannot be casted to a
+     * unresolvable, or if the value is {@code null} or cannot be cast to a
      * {@link Boolean}.
      * 
      * @param path the path segments or a dot-separated path sequence
      * @return the {@link Boolean} value
      * @throws IllegalArgumentException if the path is invalid or unresolvable, or
      *                                  if the value is {@code null} or cannot be
-     *                                  casted to a {@link Boolean}
+     *                                  cast to a {@link Boolean}
      */
     public @NotNull Boolean requireBooleanAt(@NotNull String... path) {
         return findBooleanAt(path).orElseThrow(() -> new IllegalArgumentException("The path " + String.join(".", path)
@@ -2836,7 +2839,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      */
     public @NotNull JSONObject requireJson(@NotNull String key) throws IllegalArgumentException {
         return findJson(key).orElseThrow(() -> new IllegalArgumentException("The required JSONObject value '" + key
-                + "' could not be found, could not be casted, or was null for object '" + this.key + "'"));
+                + "' could not be found, could not be cast, or was null for object '" + this.key + "'"));
     }
 
     /**
@@ -2928,7 +2931,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      */
     public @NotNull JSONObject requireJson(@NotNull Collection<String> keys) throws IllegalArgumentException {
         return findJson(keys).orElseThrow(() -> new IllegalArgumentException("The keys, " + String.join("', '", keys)
-                + "', one of which is required of type JSONObject, are all missing, null, or could not be casted in subtree '"
+                + "', one of which is required of type JSONObject, are all missing, null, or could not be cast in subtree '"
                 + this.key + "'"));
     }
 
@@ -2961,20 +2964,32 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      *         {@code Optional.empty()}
      */
     public @NotNull Optional<JSONObject> findJsonAt(@NotNull String... path) {
-        return findAt(path).filter(JSONObject.class::isInstance).map(JSONObject.class::cast);
+        Optional<?> value = findAt(path);
+        if (value.isPresent()) {
+            if (value.get() instanceof JSONObject json) {
+                return Optional.of(json);
+            } else if (value.get() instanceof List<?> list) {
+                for (Object item : list) {
+                    if (item instanceof JSONObject json) {
+                        return Optional.of(json);
+                    }
+                }
+            }
+        }
+        return Optional.empty();
     }
 
     /**
      * Resolves the key path and returns the value cast to a {@link JSONObject},
      * throwing an {@link IllegalArgumentException} if the path is invalid or
-     * unresolvable, or if the value is {@code null} or cannot be casted to a
+     * unresolvable, or if the value is {@code null} or cannot be cast to a
      * {@link JSONObject}.
      * 
      * @param path the path segments or a dot-separated path sequence
      * @return the {@link JSONObject} value
      * @throws IllegalArgumentException if the path is invalid or unresolvable, or
      *                                  if the value is {@code null} or cannot be
-     *                                  casted to a {@link JSONObject}
+     *                                  cast to a {@link JSONObject}
      */
     public @NotNull JSONObject requireJsonAt(@NotNull String... path) {
         return findJsonAt(path).orElseThrow(() -> new IllegalArgumentException("The path " + String.join(".", path)
@@ -3040,7 +3055,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      */
     public @NotNull List<?> requireArray(@NotNull String key) throws IllegalArgumentException {
         return findArray(key).orElseThrow(() -> new IllegalArgumentException("The required List value '" + key
-                + "' could not be found, could not be casted, or was null for object '" + this.key + "'"));
+                + "' could not be found, could not be cast, or was null for object '" + this.key + "'"));
     }
 
     /**
@@ -3141,7 +3156,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      */
     public @NotNull List<?> requireArray(@NotNull Collection<String> keys) throws IllegalArgumentException {
         return findArray(keys).orElseThrow(() -> new IllegalArgumentException("The keys, " + String.join("', '", keys)
-                + "', one of which is required of type List, are all missing, null, or could not be casted in subtree '"
+                + "', one of which is required of type List, are all missing, null, or could not be cast in subtree '"
                 + this.key + "'"));
     }
 
@@ -3180,14 +3195,14 @@ public class JSONObject implements Iterable<Object>, Cloneable {
     /**
      * Resolves the key path and returns the value cast to a {@link List},
      * throwing an {@link IllegalArgumentException} if the path is invalid or
-     * unresolvable, or if the value is {@code null} or cannot be casted to a
+     * unresolvable, or if the value is {@code null} or cannot be cast to a
      * {@link List}.
      * 
      * @param path the path segments or a dot-separated path sequence
      * @return the {@link List} value
      * @throws IllegalArgumentException if the path is invalid or unresolvable, or
      *                                  if the value is {@code null} or cannot be
-     *                                  casted to a {@link List}
+     *                                  cast to a {@link List}
      */
     public @NotNull List<?> requireArrayAt(@NotNull String... path) throws IllegalArgumentException {
         return findArrayAt(path).orElseThrow(() -> new IllegalArgumentException("The path " + String.join(".", path)
@@ -3207,12 +3222,14 @@ public class JSONObject implements Iterable<Object>, Cloneable {
     public void setValue(@Nullable Object value) {
         if (value == null) {
             this.value = null;
-        } else if (value instanceof JSONSerializable serializable) {
-            this.value = new ArrayList<>().add(serializable.toJson());
+        } else if (value instanceof JSONSerializable<?> serializable) {
+            List<JSONObject> list = new ArrayList<>();
+            list.add(serializable.toJson());
+            this.value = list;
         } else if (value instanceof List<?> list) {
             List<Object> res = new ArrayList<>();
             for (Object item : list) {
-                if (item instanceof JSONSerializable serializable) {
+                if (item instanceof JSONSerializable<?> serializable) {
                     res.add(serializable.toJson());
                 } else {
                     res.add(item);
@@ -3444,7 +3461,7 @@ public class JSONObject implements Iterable<Object>, Cloneable {
     }
 
     /**
-     * Applies the given funtion to this node and returns the result.
+     * Applies the given function to this node and returns the result.
      * 
      * @param <T>      the target type after applying the given function
      * @param function function which accepts this {@link JSONObject} and returns

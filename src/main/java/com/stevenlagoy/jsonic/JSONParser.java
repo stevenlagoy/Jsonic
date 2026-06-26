@@ -121,14 +121,16 @@ class JSONParser {
         }
         valueLine = valueLine.trim();
 
-        if (valueLine.equals("true")) {
-            return Boolean.TRUE;
-        }
-        if (valueLine.equals("false")) {
-            return Boolean.FALSE;
-        }
-        if (valueLine.equals("null")) {
-            return NULL_SENTINEL;
+        switch (valueLine) {
+            case "true" -> {
+                return Boolean.TRUE;
+            }
+            case "false" -> {
+                return Boolean.FALSE;
+            }
+            case "null" -> {
+                return NULL_SENTINEL;
+            }
         }
 
         String parsedString = parseString(valueLine);
@@ -146,12 +148,7 @@ class JSONParser {
             return parsedObject;
         }
 
-        List<Object> parsedArray = parseArray(valueLine);
-        if (parsedArray != null) {
-            return parsedArray;
-        }
-
-        return null;
+        return parseArray(valueLine);
     }
 
     /**
@@ -552,10 +549,7 @@ class JSONParser {
         if (line == null) {
             return false;
         }
-        if (line.isBlank()) {
-            return false;
-        }
-        return true;
+        return !line.isBlank();
     }
 
     /**
@@ -565,7 +559,7 @@ class JSONParser {
      * &lt;int&gt; ::= -? &lt;digits&gt;
      * </pre>
      *
-     * @param intStr the substring representing the integer portion
+     * @param intString the substring representing the integer portion
      * @return {@code true} if the substring is a valid JSON integer part
      */
     private static boolean isValidInt(@Nullable String intString) {
@@ -634,7 +628,7 @@ class JSONParser {
      * &lt;digits&gt; ::= &lt;digit&gt; | &lt;digit&gt; &lt;digits&gt;
      * </pre>
      *
-     * @param digitsStr the string to validate
+     * @param digitsString the string to validate
      * @return {@code true} if the string is non-empty and contains only digits
      *         {@code 0}–{@code 9}
      */

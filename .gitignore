@@ -28,3 +28,10 @@ target/
 # Keep test data files
 !src/tests/java/data/**/*.json
 !src/tests/java/data/**/*.out
+
+*.txt
+*.env
+*.key
+
+# User-specific IDE files
+settings.json

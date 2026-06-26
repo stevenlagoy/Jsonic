@@ -5,152 +5,225 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * JSONStringifier provides utilities for turning a JSONObject into a String.
+ * Internal utility class responsible for converting a {@link JSONObject} tree
+ * into its JSON string representation.
+ * <p>
+ * This class is not part of the public API. The only intended entry point is
+ * {@link JSONObject#toString()}, which calls {@link #stringify(JSONObject)}.
+ * <p>
+ * The output of {@link #stringify(JSONObject)} is a compact single-line JSON
+ * string. {@link #expand(String)} can be used to produce a human-readable,
+ * indented form of that string.
  */
-public class JSONStringifier {
+class JSONStringifier {
 
     private JSONStringifier() {
     }
 
-    /*
-     * JSON BNF Grammar
-     * <json> ::= <value>
-     * <value> ::= <string> | <number> | <object> | <array> | true | false | null
-     *
-     * <object> ::= { } | { <members> }
-     * <members> ::= <pair> | <pair> , <members>
-     * <pair> ::= <string> : <value>
-     * semantics rule: <string> must be unique within its level
-     *
-     * <array> ::= [ ] | [ <elements> ]
-     * <elements> ::= <value> | <value> , <elements>
-     *
-     * <string> ::= " <characters> "
-     * <characters> ::= <character> | <character> <characters>
-     * <character> ::= # any unicode character except " or \ or control characters #
-     * | <escape>
-     *
-     * <escape> ::= \ (" | \ | / | b | f | n | r | t | u <hex><hex><hex><hex>)
-     *
-     * <number> ::= <int> <frac>? <exp>?
-     * <int> ::= -? <digits>
-     * <frac> ::= . <digits>
-     * <exp> ::= (e | E) (+ | -)? <digits>
-     * <digits> ::= <digit> | <digit> <digits>
-     * <digit> ::= # digit from 0 to 9 #
-     * <hex> ::= <digit> | [a-f] | [A-F]
-     */
-
     /**
-     * Turns the passed JSONObject into a string representation.
-     * 
-     * @param json JSONObject to Stringify.
-     * @return Expanded String representation of the JSONObject.
+     * Converts the given {@link JSONObject} into a compact JSON string.
+     * <p>
+     * The root node's key is not included in the output — only its value is
+     * stringified. This matches the expectation that a root node wraps a complete
+     * JSON value.
+     *
+     * @param json the root {@code JSONObject} to stringify; must not be
+     *             {@code null}
+     * @return a compact JSON string representation of the node's value
      */
-    public static String stringifyJson(JSONObject json) {
-        String result = stringifyObject(json.getAsObject());
-        return result.substring(1, result.length() - 1);
+    static String stringify(JSONObject json) {
+        return stringifyValue(json.getValue());
     }
 
     /**
-     * Stringify one JSON value.
-     * 
-     * @param value Value to stringify.
-     * @param type  Known type of the value being stringified.
-     * @return String representation of the value.
+     * Expands a compact JSON string into a human-readable, indented form.
+     * Returns a list of lines, one structural element per line, indented with
+     * tabs to reflect nesting depth.
+     * <p>
+     * Characters inside string literals are passed through unchanged.
+     *
+     * @param json a compact JSON string, as produced by {@link #stringify}
+     * @return a list of indented lines representing the formatted JSON
      */
-    public static String stringifyValue(Object value, Class<?> type) {
-        if (type.equals(JSONObject.class)) {
-            @SuppressWarnings("unchecked") // The type of this object is known from the type parameter
-            List<JSONObject> objects = (List<JSONObject>) value;
-            StringBuilder result = new StringBuilder();
-            for (JSONObject object : objects)
-                result.append(stringifyObject(object));
-            return result.toString();
-        }
-        if (type.equals(ArrayList.class)) {
-            return stringifyArray((List<?>) value);
-        }
-        return stringifyValue(value);
-    }
+    static List<String> expand(String json) {
+        List<String> result = new ArrayList<>();
+        int depth = 0;
+        StringBuilder currentLine = new StringBuilder();
 
-    /**
-     * Stringify one JSON value.
-     * 
-     * @param value Value to stringify.
-     * @return String representation of the value.
-     */
-    public static String stringifyValue(Object value) {
-        if (value instanceof String)
-            return "\"" + stringifyEscape((String) value) + "\"";
-        else if (value instanceof Number || value instanceof Boolean)
-            return value.toString();
-        else if (value instanceof Jsonic)
-            return "\"" + ((Jsonic) value).toJson().toString() + "\"";
-        else if (value.getClass() == Object.class)
-            return "null"; // Only Object, not subclass
-        else
-            return "\"" + value.toString() + "\"";
-    }
+        for (int i = 0; i < json.length(); i++) {
+            char c = json.charAt(i);
 
-    /**
-     * Stringifies one JSON object.
-     * 
-     * @param object JSONObject to stringify.
-     * @return String representation of the JSON object.
-     */
-    public static String stringifyObject(JSONObject object) {
-        if (object == null)
-            return "{}";
-
-        StringBuilder sb = new StringBuilder();
-        sb.append("{");
-
-        sb.append(stringifyValue(object.getKey()));
-        sb.append(" : ");
-
-        Object value = object.getValue();
-        Class<?> type = object.getType();
-
-        if (value == null)
-            sb.append("null");
-        else if (type != null && type.equals(JSONObject.class) && value instanceof List) {
-            @SuppressWarnings("unchecked")
-            List<JSONObject> objects = (List<JSONObject>) value;
-            sb.append("{");
-            for (int i = 0; i < objects.size(); i++) {
-                String nested = stringifyObject(objects.get(i));
-                sb.append(nested.substring(1, nested.length() - 1));
-                if (i < objects.size() - 1)
-                    sb.append(", ");
+            // Inside a string: pass characters through as-is, except for the closing quote
+            // which falls through to the '"' case below.
+            if (StringOperations.isInString(json, i) && c != '"') {
+                currentLine.append(c);
+                continue;
             }
-            sb.append("}");
-        } else if (type != null && value instanceof JSONObject json) {
-            sb.append("{");
-            sb.append(json.toString());
-            sb.append("}");
-        } else if (type != null)
-            sb.append(stringifyValue(value, type));
-        else
-            sb.append(stringifyValue(value));
 
+            switch (c) {
+                case '"' -> currentLine.append(c);
+                case '{', '[' -> {
+                    currentLine.append(c);
+                    result.add("\t".repeat(depth) + currentLine);
+                    currentLine = new StringBuilder();
+                    depth++;
+                }
+                case '}', ']' -> {
+                    if (!currentLine.isEmpty()) {
+                        result.add("\t".repeat(depth) + currentLine);
+                        currentLine = new StringBuilder();
+                    }
+                    depth--;
+                    // Consume a trailing comma on the closing bracket if present
+                    if (i + 1 < json.length() && json.charAt(i + 1) == ',') {
+                        result.add("\t".repeat(depth) + c + ",");
+                        i++;
+                    } else {
+                        result.add("\t".repeat(depth) + c);
+                    }
+                }
+                case ',' -> {
+                    currentLine.append(c);
+                    result.add("\t".repeat(depth) + currentLine);
+                    currentLine = new StringBuilder();
+                }
+                case ':' -> currentLine.append(": ");
+                default -> {
+                    if (!Character.isWhitespace(c)) {
+                        currentLine.append(c);
+                    }
+                }
+            }
+        }
+
+        if (!currentLine.isEmpty()) {
+            result.add("\t".repeat(depth) + currentLine);
+        }
+        return result;
+    }
+
+    /**
+     * Stringifies a single JSON value of any valid type.
+     * <p>
+     * Dispatches to the appropriate method based on the runtime type of
+     * {@code value}:
+     * <ul>
+     * <li>{@code null} → {@code "null"}</li>
+     * <li>{@code String} → quoted and escaped string</li>
+     * <li>{@code Number} or {@code Boolean} → {@link Object#toString()}</li>
+     * <li>{@code List<JSONObject>} → JSON object body {@code {...}}</li>
+     * <li>{@code List<?>} → JSON array {@code [...]}</li>
+     * <li>{@code JSONObject} → nested object</li>
+     * </ul>
+     *
+     * @param value the value to stringify; may be {@code null}
+     * @return the JSON string representation of the value
+     */
+    private static String stringifyValue(Object value) {
+        if (value == null) {
+            return "null";
+        } else if (value instanceof String s) {
+            return "\"" + escapeString(s) + "\"";
+        } else if (value instanceof Number || value instanceof Boolean) {
+            return value.toString();
+        } else if (value instanceof List<?> list) {
+            return stringifyList(list);
+        } else if (value instanceof JSONObject json) {
+            // Edge case from manual construction: never happens by reading a JSON file
+            return stringifyObject(json);
+        } else if (value instanceof JSONSerializable<?> serializable) {
+            return stringifyObject(serializable.toJson());
+        }
+        // Fallback: stringify unknown types as quoted strings
+        return "\"" + escapeString(value.toString()) + "\"";
+    }
+
+    /**
+     * Stringifies a {@link List}, dispatching to either object or array form based
+     * on the content of the list.
+     * <p>
+     * A list whose first element is a {@link JSONObject} is treated as a JSON
+     * object body (a sequence of key-value pairs). Any other list is treated as a
+     * JSON array. Due to type erasure, empty lists will be assumed to be a JSON
+     * array rather than a JSON object, producing {@code []} rather than {@code {}}.
+     * If a list should be treated as a JSON object, it is recommended to put a
+     * marker object inside, like {@code {"_": ""}}.
+     *
+     * @param list the list to stringify; must not be {@code null}
+     * @return a JSON object body {@code {...}} or array {@code [...]} string
+     */
+    private static String stringifyList(List<?> list) {
+        if (list.isEmpty())
+            return "[]";
+        if (list.get(0) instanceof JSONObject)
+            return stringifyObjectBody(list);
+        return stringifyArray(list);
+    }
+
+    /**
+     * Stringifies a list of {@link JSONObject}s as a JSON object body.
+     * <p>
+     * Each element is rendered as a key-value pair separated by commas, all
+     * wrapped in curly braces.
+     *
+     * @param list a non-empty list whose elements are all {@link JSONObject}s
+     * @return a JSON object string {@code {"key": value, ...}}
+     */
+    @SuppressWarnings("unchecked")
+    private static String stringifyObjectBody(List<?> list) {
+        List<JSONObject> objects = (List<JSONObject>) list;
+        StringBuilder sb = new StringBuilder("{");
+        for (int i = 0; i < objects.size(); i++) {
+            sb.append(stringifyPair(objects.get(i)));
+            if (i < objects.size() - 1)
+                sb.append(", ");
+        }
         sb.append("}");
-
         return sb.toString();
     }
 
     /**
-     * Stringifies one JSON array (List).
-     * 
-     * @param array JSON array to stringify.
-     * @return String representation of the array.
+     * Stringifies a single {@link JSONObject} as a JSON key-value pair.
+     * <p>
+     * The key is rendered as a quoted string followed by {@code :} and the
+     * stringified value.
+     *
+     * @param object the object to render as a pair; must not be {@code null}
+     * @return a JSON key-value pair string {@code "key": value}
      */
-    public static String stringifyArray(List<?> array) {
-        if (array == null || array.isEmpty())
-            return "[]";
+    private static String stringifyPair(JSONObject object) {
+        return "\"" + escapeString(object.getKey()) + "\": "
+                + stringifyValue(object.getValue());
+    }
 
-        StringBuilder sb = new StringBuilder();
-        sb.append("[");
+    /**
+     * Stringifies a single nested {@link JSONObject} as a JSON object. If the
+     * object's value is a list of {@link JSONObject}s, it is rendered as a full
+     * object body. Otherwise, it is rendered as a single key-value pair wrapped
+     * in braces.
+     *
+     * @param object the {@code JSONObject} to stringify; must not be {@code null}
+     * @return a JSON object string
+     */
+    private static String stringifyObject(JSONObject object) {
+        Object value = object.getValue();
+        if (value instanceof List<?> list && !list.isEmpty()
+                && list.get(0) instanceof JSONObject) {
+            return stringifyObjectBody(list);
+        }
+        return "{" + stringifyPair(object) + "}";
+    }
+
+    /**
+     * Stringifies a list of primitive JSON values as a JSON array.
+     *
+     * @param array the list to render as a JSON array; must not be {@code null}
+     * @return a JSON array string {@code [value, ...]}
+     */
+    private static String stringifyArray(List<?> array) {
+        if (array.isEmpty())
+            return "[]";
+        StringBuilder sb = new StringBuilder("[");
         Iterator<?> it = array.iterator();
         while (it.hasNext()) {
             sb.append(stringifyValue(it.next()));
@@ -158,90 +231,27 @@ public class JSONStringifier {
                 sb.append(", ");
         }
         sb.append("]");
-
         return sb.toString();
     }
 
     /**
-     * Stringifies escape character(s) to make them printable.
-     * 
-     * @param escape Escape character(s) to make printable.
-     * @return Escaped escape characters in the order they appeared in the original
-     *         string.
+     * Escapes special characters in a string for inclusion in a JSON string
+     * literal. Processes characters in an order that avoids double-escaping:
+     * backslashes are escaped first so that subsequently added backslashes from
+     * other replacements are not re-escaped.
+     *
+     * @param s the raw string to escape; must not be {@code null}
+     * @return the escaped string, safe for embedding between JSON double quotes
      */
-    public static String stringifyEscape(String escape) {
-        return escape
-                .replace("\\", "\\\\")
+    private static String escapeString(String s) {
+        return s
+                .replace("\\", "\\\\") // must be first
                 .replace("\"", "\\\"")
                 .replace("\b", "\\b")
                 .replace("\f", "\\f")
                 .replace("\n", "\\n")
                 .replace("\r", "\\r")
                 .replace("\t", "\\t");
-    }
-
-    /**
-     * Expands json with newlines and tab characters where appropriate.
-     * 
-     * @param json String representing JSON which can be expanded.
-     * @return Expanded form of the JSON string in a List of Strings.
-     */
-    public static List<String> expandJson(String json) {
-        List<String> result = new ArrayList<>();
-        int indentation = 0;
-        String tab = "	";
-        StringBuilder currentLine = new StringBuilder();
-
-        for (int i = 0; i < json.length(); i++) {
-            char c = json.charAt(i);
-
-            if (StringOperations.isInString(json, i) && c != '"') {
-                currentLine.append(c);
-                continue;
-            }
-            switch (c) {
-                case '"':
-                    currentLine.append(c);
-                    break;
-                case '{':
-                case '[':
-                    currentLine.append(c);
-                    result.add(tab.repeat(indentation) + currentLine);
-                    currentLine = new StringBuilder();
-                    indentation++;
-                    break;
-                case '}':
-                case ']':
-                    if (currentLine.length() > 0) {
-                        result.add(tab.repeat(indentation) + currentLine);
-                        currentLine = new StringBuilder();
-                    }
-                    indentation--;
-                    if (i + 1 < json.length() && json.charAt(i + 1) == ',') {
-                        result.add(tab.repeat(indentation) + c + ",");
-                        i++;
-                    } else
-                        result.add(tab.repeat(indentation) + c);
-                    break;
-                case ',':
-                    currentLine.append(c);
-                    result.add(tab.repeat(indentation) + currentLine);
-                    currentLine = new StringBuilder();
-                    break;
-                case ':':
-                    currentLine.append(" ").append(c).append(" ");
-                    break;
-                default:
-                    if (!Character.isWhitespace(c)) {
-                        currentLine.append(c);
-                    }
-            }
-        }
-
-        if (currentLine.length() > 0) {
-            result.add(tab.repeat(indentation) + currentLine);
-        }
-        return result;
     }
 
 }

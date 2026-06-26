@@ -1,12 +1,14 @@
 package com.stevenlagoy.jsonic;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /** Util class for operations using Strings. */
-public class StringOperations {
+class StringOperations {
 
     private StringOperations() {
     }
@@ -25,19 +27,17 @@ public class StringOperations {
      * for the requested position.
      * </p>
      *
-     * @param line
-     *                 The input string to analyze.
-     * @param position
-     *                 The index position in the string to check.
+     * @param line     The input string to analyze.
+     * @param position The index position in the string to check.
      *
      * @return {@code true} if the position is within a string literal,
      *         {@code false} otherwise.
      * 
      * @see #clearInStringCache()
      */
-    public static boolean isInString(String line, int position) {
+    public static boolean isInString(@NotNull String line, int position) {
         if (inStringCache == null)
-            inStringCache = new HashMap<String, Boolean[]>();
+            inStringCache = new HashMap<>();
 
         // If the String is already in the cache, return the inString value for the
         // given position.
@@ -80,10 +80,8 @@ public class StringOperations {
      * result, and then returns the value for the requested position.
      * </p>
      *
-     * @param line
-     *                 The input string to analyze.
-     * @param position
-     *                 The index position in the string to check.
+     * @param line     The input string to analyze.
+     * @param position The index position in the string to check.
      *
      * @return {@code true} if the position is within a JSON array, {@code false}
      *         otherwise.
@@ -91,7 +89,7 @@ public class StringOperations {
      * @see #isInString(String, int)
      * @see #clearInArrayCache()
      */
-    public static boolean isInArray(String line, int position) {
+    public static boolean isInArray(@NotNull String line, int position) {
         if (inArrayCache == null)
             inArrayCache = new HashMap<>();
 
@@ -144,10 +142,8 @@ public class StringOperations {
      * large strings or when called in a loop.
      * </p>
      *
-     * @param line
-     *                 The input string to analyze.
-     * @param position
-     *                 The index position in the string to check.
+     * @param line     The input string to analyze.
+     * @param position The index position in the string to check.
      *
      * @return {@code true} if the position is within a JSON object, {@code false}
      *         otherwise.
@@ -155,7 +151,7 @@ public class StringOperations {
      * @see #isInString(String, int)
      * @see #clearInObjectCache()
      */
-    public static boolean isInObject(String line, int position) {
+    public static boolean isInObject(@NotNull String line, int position) {
         if (inObjectCache == null)
             inObjectCache = new HashMap<>();
 
@@ -198,18 +194,16 @@ public class StringOperations {
      * unescaped characters outside of strings.
      * </p>
      *
-     * @param line
-     *               The string to search.
-     * @param target
-     *               The character to look for.
+     * @param line   The string to search.
+     * @param target The character to look for.
      *
-     * @return {@code true} if the character appears outside of a string,
+     * @return {@code true} if the character appears outside a string,
      *         {@code false} otherwise.
      *
      * @see #countUnquotedChar(String, char)
      * @see #isInString(String, int)
      */
-    public static boolean containsUnquotedChar(String line, char target) {
+    public static boolean containsUnquotedChar(@NotNull String line, char target) {
         return findFirstUnquotedChar(line, target) != -1;
     }
 
@@ -223,16 +217,14 @@ public class StringOperations {
      * within a quoted string. Escaped quotes are correctly ignored.
      * </p>
      *
-     * @param line
-     *               The {@code string} to analyze.
-     * @param target
-     *               The {@code char} to count.
+     * @param line   The {@code string} to analyze.
+     * @param target The {@code char} to count.
      *
      * @return The number of unquoted occurrences of the target character.
      *
      * @see #isInString(String, int)
      */
-    public static int countUnquotedChar(String line, char target) {
+    public static int countUnquotedChar(@NotNull String line, char target) {
         int count = 0;
         for (int i = 0; i < line.length(); i++) {
             if (line.charAt(i) == target && !isInString(line, i))
@@ -242,19 +234,17 @@ public class StringOperations {
     }
 
     /**
-     * Finds the first instance of the target character outside of a string literal.
+     * Finds the first instance of the target character outside a string literal.
      *
-     * @param line
-     *               The {@code string} through which to search
-     * @param target
-     *               The {@code char} to search for
+     * @param line   The {@code string} through which to search
+     * @param target The {@code char} to search for
      *
      * @return The index of the first unquoted instance of the target character, or
      *         {@code -1} if not found
      *
      * @see #isInString(String, int)
      */
-    public static int findFirstUnquotedChar(String line, char target) {
+    public static int findFirstUnquotedChar(@NotNull String line, char target) {
         for (int i = 0; i < line.length(); i++) {
             if (line.charAt(i) == target && !isInString(line, i))
                 return i;
@@ -273,16 +263,14 @@ public class StringOperations {
      * whitespace around each resulting substring.
      * </p>
      *
-     * @param string
-     *                  The input string to split.
-     * @param separator
-     *                  The substring to split on, when not within quotes.
+     * @param string    The input string to split.
+     * @param separator The substring to split on, when not within quotes.
      *
      * @return An array of trimmed substrings resulting from the split.
      *
      * @see #isInString(String, int)
      */
-    public static String[] splitByUnquotedString(String string, String separator) {
+    public static @NotNull String[] splitByUnquotedString(@NotNull String string, @NotNull String separator) {
         if (splitByUnquotedCache == null)
             splitByUnquotedCache = new HashMap<>();
 
@@ -336,20 +324,16 @@ public class StringOperations {
      * remainder into the last entry.
      * </p>
      *
-     * @param string
-     *                  The input string to split.
-     * @param separator
-     *                  The substring to split on, when not within quotes.
-     * @param limit
-     *                  The maximum number of substrings to return. Must be at least
-     *                  1.
+     * @param string    The input string to split.
+     * @param separator The substring to split on, when not within quotes.
+     * @param limit     The maximum number of substrings to return. Must be at least 1.
      *
      * @return An array of trimmed substrings resulting from the split, with at most
      *         {@code limit} entries.
      *
      * @see #isInString(String, int)
      */
-    public static String[] splitByUnquotedString(String string, String separator, int limit) {
+    public static @NotNull String[] splitByUnquotedString(@NotNull String string, @NotNull String separator, int limit) {
         List<String> parts = new ArrayList<>();
         int lastSplitIndex = 0;
         int count = 1; // always returns at least one string
@@ -387,16 +371,14 @@ public class StringOperations {
      * Trims whitespace around each resulting substring.
      * </p>
      *
-     * @param string
-     *                  The input string to split.
-     * @param separator
-     *                  The substring to split on, when not within array brackets.
+     * @param string    The input string to split.
+     * @param separator The substring to split on, when not within array brackets.
      *
      * @return An array of trimmed substrings resulting from the split.
      *
      * @see #isInArray(String, int)
      */
-    public static String[] splitByStringNotInArray(String string, String separator) {
+    public static @NotNull String[] splitByStringNotInArray(@NotNull String string, @NotNull String separator) {
         if (splitByNotInArrayCache == null)
             splitByNotInArrayCache = new HashMap<>();
 
@@ -440,16 +422,16 @@ public class StringOperations {
     }
 
     /**
-     * Split by the passed string where it appears outside of any object (not
-     * surrounded by curly braces {@code {}}.
+     * Split by the passed string where it appears outside any object (not
+     * surrounded by curly braces {@code {}}).
      * 
      * @param string    String to split
-     * 
      * @param separator Separator used to split
-     * @return Array of String of of the original string split by the separator. The
+     *
+     * @return Array of String of the original string split by the separator. The
      *         separator will not be present unless inside an object {@code {}}.
      */
-    public static String[] splitByStringNotInObject(String string, String separator) {
+    public static @NotNull String[] splitByStringNotInObject(@NotNull String string, @NotNull String separator) {
         if (splitByNotInObjectCache == null)
             splitByNotInObjectCache = new HashMap<>();
 
@@ -499,9 +481,9 @@ public class StringOperations {
      * @param string    Input string to split
      * @param separator String to use as separator
      *
-     * @return List of strings split from the input string based on the separator.
+     * @return Array of strings split from the input string based on the separator.
      */
-    public static String[] splitByStringNotNested(String string, String separator) {
+    public static @NotNull String[] splitByStringNotNested(@NotNull String string, @NotNull String separator) {
         if (splitByNotNestedCache == null)
             splitByNotNestedCache = new HashMap<>();
 
@@ -551,23 +533,19 @@ public class StringOperations {
      * reversing the string and performing
      * the replacement on the first occurrence in the reversed string.
      *
-     * @param text
-     *                    The input string in which the replacement will be made.
-     * @param regex
-     *                    The regular expression to match for the replacement.
-     * @param replacement
-     *                    The string to replace the matched regex.
+     * @param text        The input string in which the replacement will be made.
+     * @param regex       The regular expression to match for the replacement.
+     * @param replacement The string to replace the matched regex.
      *
      * @return A new string with the last occurrence of the regex replaced by the
      *         replacement string.
      *
      * @see String#replaceFirst(String, String)
      */
-    public static String replaceLast(String text, String regex, String replacement) {
+    public static @NotNull String replaceLast(@NotNull String text, @NotNull String regex, @NotNull String replacement) {
         String reversedText = new StringBuilder(text).reverse().toString();
         String reversedResult = reversedText.replaceFirst(regex, replacement);
-        String result = new StringBuilder(reversedResult).reverse().toString();
-        return result;
+        return new StringBuilder(reversedResult).reverse().toString();
     }
 
     /**
@@ -577,19 +555,16 @@ public class StringOperations {
      * occurrence of the regex in the reversed string,
      * and then reverses the resulting string again to produce the final output.
      *
-     * @param text
-     *                    The input string in which the replacement will be made.
-     * @param regex
-     *                    The regular expression to match for the replacement
-     * @param replacement
-     *                    The string to replace the matched regex
+     * @param text        The input string in which the replacement will be made.
+     * @param regex       The regular expression to match for the replacement
+     * @param replacement The string to replace the matched regex
      *
      * @return A new string with the first occurrence of the regex replaced by the
      *         replacement string.
      *
      * @see String#replaceFirst(String, String)
      */
-    public static String replaceFirst(String text, String regex, String replacement) {
+    public static @NotNull String replaceFirst(@NotNull String text, @NotNull String regex, @NotNull String replacement) {
         return text.replaceFirst(regex, replacement);
     }
 
@@ -597,43 +572,35 @@ public class StringOperations {
      * Replaces all occurrences of a specified regular expression in the input text
      * with a replacement string.
      *
-     * @param text
-     *                    The input string in which the replacements will be made.
-     * @param regex
-     *                    The regular expression to match for the replacement.
-     * @param replacement
-     *                    The string to replace the matched regex
+     * @param text        The input string in which the replacements will be made.
+     * @param regex       The regular expression to match for the replacement.
+     * @param replacement The string to replace the matched regex
      *
      * @return A new string with all occurrences of the regex replaced by the
      *         replacement string.
      *
      * @see String#replaceAll(String, String)
      */
-    public static String replaceAll(String text, String regex, String replacement) {
+    public static @NotNull String replaceAll(@NotNull String text, @NotNull String regex, @NotNull String replacement) {
         return text.replaceAll(regex, replacement);
     }
 
     /**
      * Replaces all occurrences of a specified regular expression where it appears
-     * outside of a quotated string in the
-     * input text with a replacement string.
+     * outside a quoted string in the input text with a replacement string.
      *
-     * @param text
-     *                    The input string in which the replacements will be made.
-     * @param regex
-     *                    The regular expression to match for the replacement.
-     * @param replacement
-     *                    The string to replace the matched regex
+     * @param text        The input string in which the replacements will be made.
+     * @param regex       The regular expression to match for the replacement.
+     * @param replacement The string to replace the matched regex
      *
-     * @return A new string with all occurrences of the regex outside of a string
+     * @return A new string with all occurrences of the regex outside a string
      *         replaced by the replacement string
      *
      * @see #isInString(String, int)
      */
-    public static String replaceAllNotInString(String text, String regex, String replacement) {
+    public static @NotNull String replaceAllNotInString(@NotNull String text, @NotNull String regex, @NotNull String replacement) {
         String[] split = splitByUnquotedString(text, regex);
-        String result = String.join(replacement, split);
-        return result;
+        return String.join(replacement, split);
     }
 
     /**
@@ -641,21 +608,17 @@ public class StringOperations {
      * expression with the replacement string in
      * the input text.
      *
-     * @param text
-     *                    The input string in which the replacements will be made.
-     * @param regex
-     *                    The regular expression to match for the replacement.
-     * @param replacement
-     *                    The string to replace the matched regex.
-     * @param count
-     *                    The number of occurrences to replace.
+     * @param text        The input string in which the replacements will be made.
+     * @param regex       The regular expression to match for the replacement.
+     * @param replacement The string to replace the matched regex.
+     * @param count       The number of occurrences to replace.
      *
      * @return A new string with the first {@code count} occurrences of the regex
      *         replaced by the replacement string.
      *
      * @see #replaceFirst(String, String, String)
      */
-    public static String replaceFirstCount(String text, String regex, String replacement, int count) {
+    public static @NotNull String replaceFirstCount(@NotNull String text, @NotNull String regex, @NotNull String replacement, int count) {
         StringBuilder result = new StringBuilder(text);
         int startPos = 0; // Start position for the next search
 
@@ -681,21 +644,17 @@ public class StringOperations {
      * expression with the replacement string in
      * the input text.
      *
-     * @param text
-     *                    The input string in which the replacements will be made.
-     * @param regex
-     *                    The regular expression to match for the replacement.
-     * @param replacement
-     *                    The string to replace the matched regex.
-     * @param count
-     *                    The number of occurrences to replace.
+     * @param text        The input string in which the replacements will be made.
+     * @param regex       The regular expression to match for the replacement.
+     * @param replacement The string to replace the matched regex.
+     * @param count       The number of occurrences to replace.
      *
      * @return A new string with the last {@code count} occurrences of the regex
      *         replaced by the replacement string.
      *
      * @see #replaceLast(String, String, String)
      */
-    public static String replaceLastCount(String text, String regex, String replacement, int count) {
+    public static @NotNull String replaceLastCount(@NotNull String text, @NotNull String regex, @NotNull String replacement, int count) {
         StringBuilder result = new StringBuilder(text);
         int startPos = text.length(); // Start from the end of the string
 

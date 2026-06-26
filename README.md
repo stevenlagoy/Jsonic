@@ -1,18 +1,20 @@
 # Jsonic: JSON-Java Objectifier
 
-A Java library for parsing, validating, navigating, and manipulating JSON data. Jsonic provides a unified tree-node architecture with type-safe accessors, path-based navigation, declaritive schema validation, and seamless object-relational mapping.
+A Java library for parsing, validating, navigating, and manipulating JSON data. Jsonic provides a unified tree-node architecture with type-safe accessors, path-based navigation, declarative schema validation, and seamless object-relational mapping.
+
+<img src="https://stevenlagoy.github.io/assets/jsonic_thumb-DWv7fErC.png" width="300" alt="Jsonic logo, a simple coffee cup with rising steam drawn with square brackets, curly braces, and parentheses">
 
 ## Features
 
 - **Unified recursive tree architecture**: Each `JSONObject` is a standalone node holding a key-value pair. Nodes model scalars, primitive arrays, or nested object hierarchies, forming a recursive tree that mirrors any JSON structure.
-- **Constructor-based parsing**: Parse JSON files or raw strings directly during `JSONObject` intantiation. No separate parser step required.
+- **Constructor-based parsing**: Parse JSON files or raw strings directly during `JSONObject` instantiation. No separate parser step required.
 - **Granular type-safe accessors**: Retrieve typed values using optional lookups (`getString()`, `getInt()`) or strict requirements (`requireString()`, `requireInt()`) that throw descriptive exceptions on failure.
 - **Path-based navigation**: Resolve deeply nested values using dot-separated string paths or vararg segments (`findStringAt("user.profile/city")`), with escaped-dot support for keys that contain dots.
 - **Prioritized subtree searching**: Search across multiple fallback keys in priority order (`findString(List.of("email", "phone", "username"))`), returning the first match found anywhere in the subtree.
 - **Deep structural inspection**: Query node type with `isNull()`, `isArray()`, `isObject()`, `isScalar()`, and `size()`, or check key presence with `hasKey()`, `hasAllKeys()`, and `hasAnyKey()`.
-- **Declaritive schema validation**: Enforce structural rules inline: required keys, allowed-key whitelists, and isolated structure validation blocks with `requireStructure()`.
+- **Declarative schema validation**: Enforce structural rules inline: required keys, allowed-key whitelists, and isolated structure validation blocks with `requireStructure()`.
 - **Custom exception suppliers**: Inject your own exception factories into any `require*` call for integration with application-specific error handling.
-- **Default value suppliers**: Provide `Supplier<T>` fallbbacks to any `find*` call for clean, null-free value resolution.
+- **Default value suppliers**: Provide `Supplier<T>` fallbacks to any `find*` call for clean, null-free value resolution.
 - **Mutation API**: Update existing keys with `put()`, remove keys with `remove()`, and chain node construction with `merge()`.
 - **Native Java conversion**: Export tree structures to standard `Map<String, Object>` or `List<Object>` with `toMap()` and `toList()`.
 - **Object mapping via `JSONSerializable`**: Implement `JSONSerializable<T>` on your model classes to enable reflection-based serialization and custom deserialization.
@@ -69,7 +71,7 @@ JSONObject json = new JSONObject("root", List.of(rawJson));
 
 Parse from multiple lines (e.g. from a file reader):
 ```java
-List lines = Files.readAllLines(Path.of("data.json"));
+List<?> lines = Files.readAllLines(Path.of("data.json"));
 JSONObject json = new JSONObject("data", lines);
 ```
 
@@ -157,10 +159,10 @@ Optional<String> city = json.findStringAt("address.city");
 double lat = json.requireDoubleAt("location.coordinates.lat");
 
 // Varargs path -- equivalent to the above
-Optional city2 = json.findStringAt("address", "city");
+Optional<String> city2 = json.findStringAt("address", "city");
 
 // Keys that contain dots can be escaped with a backslash
-Optional temp = json.findStringAt("dates.2024\\.01\\.15.temperature");
+Optional<String> temp = json.findStringAt("dates.2024\\.01\\.15.temperature");
 
 // Navigate to a node rather than its value
 Optional<JSONObject> addressNode = json.findNodeAt("address");
@@ -190,10 +192,10 @@ boolean hasAny = node.hasAnyKey("email", "phone");
 boolean hasAll = node.hasAllKeys("id", "name", "version");
 
 // Immediate child keys of this node
-List keys = node.getFieldKeys();
+List<?> keys = node.getFieldKeys();
 ```
 
-### 6. Declaritive Schema Validation
+### 6. Declarative Schema Validation
 
 Validate structure inline before processing:
 ```java
@@ -415,7 +417,7 @@ val tag = Tag().fromJson(json) // Equivalent explicit form
 
 #### Kotlin: Custom `toJson`
 
-When your class has private fields, computed properties, or fields you want to exclide, build the `JSONObject` manually instead of using `JSONSerializable.toJson(this)`:
+When your class has private fields, computed properties, or fields you want to exclude, build the `JSONObject` manually instead of using `JSONSerializable.toJson(this)`:
 ```kotlin
 class Product(
     name: String = "",
@@ -502,7 +504,7 @@ class FeaturedArticle(
         JSONObject("featuredRank",     featuredRank),
     )
 
-    // super.fromJson() populates parent fields first, apply continue with child fields
+    // super.fromJson() populates parent fields first, apply continues with child fields
     override fun fromJson(json: JSONObject) = apply {
         super.fromJson(json)
         featuredImageUrl = json.findString("featuredImageUrl") { "" }
@@ -634,12 +636,12 @@ JSONObject json = new JSONObject(Path.of("config.json"));
 
 // Export the entire tree as a nested Map
 // Nested objects become nested Maps; arrays become Lists
-Map map = json.toMap();
+Map<String, Object> map = json.toMap();
 
 // Export a specific array node as a List
-List list = json.findNodeAt("tags")
-                .map(JSONObject::toList)
-                .orElse(Collections.emptyList());
+List<Object> list = json.findNodeAt("tags")
+                        .map(JSONObject::toList)
+                        .orElse(Collections.emptyList());
 ```
 
 ## Migration from v1.x

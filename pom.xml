@@ -50,14 +50,6 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Compile-time SpotBugs annotations -->
-        <dependency>
-            <groupId>com.github.spotbugs</groupId>
-            <artifactId>spotbugs-annotations</artifactId>
-            <version>4.7.3</version>
-            <scope>provided</scope>
-        </dependency>
-
         <!-- Compile-time JetBrains annotations -->
         <dependency>
             <groupId>org.jetbrains</groupId>

@@ -697,17 +697,13 @@ If you find a bug or have a feature request, open an issue on GitHub:
    # or
    ./gradlew test
 ```
-4. Run SpotBugs to check for static analysis warnings:
-```bash
-   mvn spotbugs:check
-```
-5. Commit your changes with a clear message:
+4. Commit your changes with a clear message:
 ```bash
    git commit -m "Fix: correct null handling in findInt for missing keys"
    git commit -m "Feature: add findNodeAt path navigation"
 ```
-6. Push your branch and open a Pull Request against `main`
-7. In the Pull Request description, reference any related issues (e.g. `Closes #42`) and summarize what changed and why
+5. Push your branch and open a Pull Request against `main`
+6. In the Pull Request description, reference any related issues (e.g. `Closes #42`) and summarize what changed and why
 
 ### Code Style
 
@@ -724,5 +720,4 @@ This project is licensed under the Apache 2.0 License -- see `LICENSE.md` for de
 
 - Built with Java 17
 - JUnit for testing
-- SpotBugs for static analysis
 - Maven for build management

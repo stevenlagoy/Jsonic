@@ -1,27 +1,22 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" 
+<?xml version="1.0" encoding="UTF-8" ?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.github.stevenlagoy</groupId>
     <artifactId>jsonic</artifactId>
-    <version>1.0.10</version>
-
-    <name>Jsonic: JSON Java Objectifier</name>
-    <description>Java tools for converting JSON into typed object structures</description>
-    <url>https://github.com/stevenlagoy/Jsonic</url>
-    
+    <version>2.0.0</version>
     <packaging>jar</packaging>
 
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.release>17</maven.compiler.release>
-    </properties>
+    <name>Jsonic: JSON Java Objectifier</name>
+    <description>A Java library for parsing, validating, navigating, and manipulating JSON data.</description>
+    <url>https://github.com/stevenlagoy/Jsonic</url>
 
     <licenses>
         <license>
             <name>The Apache License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
         </license>
     </licenses>
 
@@ -40,31 +35,54 @@
         <url>https://github.com/stevenlagoy/Jsonic</url>
     </scm>
 
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.release>17</maven.compiler.release>
+    </properties>
+
     <dependencies>
+
+        <!-- Unit Testing -->
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.13.2</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- Compile-time SpotBugs annotations -->
         <dependency>
             <groupId>com.github.spotbugs</groupId>
             <artifactId>spotbugs-annotations</artifactId>
             <version>4.7.3</version>
             <scope>provided</scope>
         </dependency>
+
+        <!-- Compile-time JetBrains annotations -->
         <dependency>
             <groupId>org.jetbrains</groupId>
             <artifactId>annotations</artifactId>
             <version>26.1.0</version>
             <scope>provided</scope>
         </dependency>
+
     </dependencies>
 
     <build>
         <sourceDirectory>src/main/java</sourceDirectory>
-        <testSourceDirectory>src/tests/java</testSourceDirectory>
         <plugins>
+
+            <!-- Enforce Java 17 compilation -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <release>17</release>
+                </configuration>
+            </plugin>
+
+            <!-- Code formatter -->
             <plugin>
                 <groupId>net.revelc.code.formatter</groupId>
                 <artifactId>formatter-maven-plugin</artifactId>
@@ -73,6 +91,8 @@
                     <encoding>UTF-8</encoding>
                 </configuration>
             </plugin>
+
+            <!-- Code coverage -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
@@ -92,31 +112,21 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <!-- Static analysis -->
             <plugin>
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-maven-plugin</artifactId>
                 <version>4.7.3.5</version>
             </plugin>
+
+            <!-- JAR packaging — no mainClass; Jsonic is a library -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>3.2.0</version>
-                <configuration>
-                    <archive>
-                        <manifest>
-                            <mainClass>src.tests.java.Tests</mainClass>
-                        </manifest>
-                    </archive>
-                </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.0.0</version>
-                <configuration>
-                    <mainClass>src.tests.java.Tests</mainClass>
-                </configuration>
-            </plugin>
+
         </plugins>
     </build>
 
@@ -138,6 +148,8 @@
             <id>deployment</id>
             <build>
                 <plugins>
+
+                    <!-- Attach sources jar -->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-source-plugin</artifactId>
@@ -151,6 +163,8 @@
                             </execution>
                         </executions>
                     </plugin>
+
+                    <!-- Attach Javadoc jar -->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
@@ -160,11 +174,12 @@
                                 <id>attach-javadocs</id>
                                 <goals>
                                     <goal>jar</goal>
-
                                 </goals>
                             </execution>
                         </executions>
                     </plugin>
+
+                    <!-- GPG signing (required by Maven Central) -->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
@@ -179,6 +194,8 @@
                             </execution>
                         </executions>
                     </plugin>
+
+                    <!-- Publish to Maven Central via Sonatype Central portal -->
                     <plugin>
                         <groupId>org.sonatype.central</groupId>
                         <artifactId>central-publishing-maven-plugin</artifactId>
@@ -187,11 +204,13 @@
                         <configuration>
                             <publishingServerId>central</publishingServerId>
                             <autoPublish>true</autoPublish>
-                            <waitUntil>uploaded</waitUntil>
+                            <waitUntil>published</waitUntil>
                         </configuration>
                     </plugin>
+
                 </plugins>
             </build>
         </profile>
     </profiles>
+
 </project>

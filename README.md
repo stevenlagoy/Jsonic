@@ -659,8 +659,8 @@ Version 2.0.0 is a full rewrite. The following changes affect all v1.x users:
 ## Building from Source
 
 ```bash
-git clone https://github.com/stevenlagoy/Jsonic
-cd jsonic
+git clone https://github.com/stevenlagoy/Jsonic.git
+cd json-java-objectifier
 mvn clean install
 ```
 

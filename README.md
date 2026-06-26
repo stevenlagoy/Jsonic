@@ -33,8 +33,8 @@ A Java library for parsing, validating, navigating, and manipulating JSON data. 
 ### Maven
 ```xml
 <dependency>
-    <groupId>com.github.stevenlagoy</groupId>
-    <artifactId>json-java-objectifier</artifactId>
+    <groupId>io.github.stevenlagoy</groupId>
+    <artifactId>jsonic</artifactId>
     <version>2.0.0</version>
 </dependency>
 ```
@@ -42,14 +42,14 @@ A Java library for parsing, validating, navigating, and manipulating JSON data. 
 ### Gradle (Groovy DSL)
 ```groovy
 dependencies {
-    implementation 'com.github.stevenlagoy:jsonic:2.0.0'
+    implementation 'io.github.stevenlagoy:jsonic:2.0.0'
 }
 ```
 
 ### Gradle (Kotlin DSL)
 ```kotlin
 dependencies {
-    implementation("com.github.stevenlagoy:json-java-objectifier:2.0.0")
+    implementation("io.github.stevenlagoy:jsonic:2.0.0")
 }
 ```
 
@@ -718,7 +718,7 @@ If you find a bug or have a feature request, open an issue on GitHub:
 
 ## License
 
-This project is licensed under the MIT License -- see `LICENSE.md` for details.
+This project is licensed under the Apache 2.0 License -- see `LICENSE.md` for details.
 
 ## Acknowledgements
 

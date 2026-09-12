@@ -109,8 +109,8 @@ public class JSONObject implements Iterable<Object>, Cloneable {
     public JSONObject(@NotNull Path path) throws IOException {
         List<String> contents = FileOperations.readFile(path);
         Path fileName = path.getFileName();
-        String key = fileName.toString();
-        JSONObject json = JSONParser.parse(key, contents);
+        String rootKey = fileName.toString();
+        JSONObject json = JSONParser.parse(rootKey, contents);
         this.key = json.getKey();
         this.value = json.getValue();
     }
@@ -433,10 +433,10 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      *                                  this subtree
      */
     public void requireAllKeys(@NotNull Collection<String> keys) throws IllegalArgumentException {
-        for (String key : keys) {
-            if (!hasKey(key)) {
+        for (String k : keys) {
+            if (!hasKey(k)) {
                 throw new IllegalArgumentException(
-                        "The required key, '" + key + "', is missing in subtree '" + this.key + "'");
+                        "The required key, '" + k + "', is missing in subtree '" + key + "'");
             }
         }
     }
@@ -1178,8 +1178,8 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * @see #find(String)
      */
     public @NotNull Optional<?> find(@NotNull Collection<String> keys) {
-        for (String key : keys) {
-            Optional<?> res = find(key);
+        for (String k : keys) {
+            Optional<?> res = find(k);
             if (res.isPresent()) {
                 return res;
             }
@@ -1292,8 +1292,8 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      */
     public @NotNull List<Object> findAll(@NotNull Collection<String> keys) {
         List<Object> values = new ArrayList<>();
-        for (String key : keys) {
-            values.addAll(findAll(key));
+        for (String k : keys) {
+            values.addAll(findAll(k));
         }
         return values;
     }
@@ -1341,11 +1341,11 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      *         match has the correct type
      */
     public <R> @NotNull Optional<R> find(@NotNull Class<R> type, @NotNull String key) {
-        for (Object value : findAll(key)) {
-            if (type.isInstance(value)) {
-                return Optional.of(type.cast(value));
+        for (Object v : findAll(key)) {
+            if (type.isInstance(v)) {
+                return Optional.of(type.cast(v));
             }
-            else if (value instanceof List<?> list) {
+            else if (v instanceof List<?> list) {
                 for (Object item : list) {
                     if (type.isInstance(item)) {
                         return Optional.of(type.cast(item));
@@ -1434,8 +1434,8 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      *         {@code R}, or {@code Optional.empty()} if no match is found
      */
     public <R> @NotNull Optional<R> find(@NotNull Class<R> type, @NotNull Collection<String> keys) {
-        for (String key : keys) {
-            Optional<R> res = find(type, key);
+        for (String k : keys) {
+            Optional<R> res = find(type, k);
             if (res.isPresent()) {
                 return res;
             }
@@ -3047,11 +3047,11 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      *         {@code Optional.empty()}
      */
     public @NotNull Optional<JSONObject> findJsonAt(@NotNull String... path) {
-        Optional<?> value = findAt(path);
-        if (value.isPresent()) {
-            if (value.get() instanceof JSONObject json) {
+        Optional<?> optValue = findAt(path);
+        if (optValue.isPresent()) {
+            if (optValue.get() instanceof JSONObject json) {
                 return Optional.of(json);
-            } else if (value.get() instanceof List<?> list) {
+            } else if (optValue.get() instanceof List<?> list) {
                 for (Object item : list) {
                     if (item instanceof JSONObject json) {
                         return Optional.of(json);
@@ -3197,8 +3197,8 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      *         value, or {@code Optional.empty()} if not found
      */
     public @NotNull Optional<List<?>> findArray(@NotNull Collection<String> keys) {
-        for (String key : keys) {
-            Optional<List<?>> res = findArray(key);
+        for (String k : keys) {
+            Optional<List<?>> res = findArray(k);
             if (res.isPresent()) {
                 return res;
             }
@@ -3384,6 +3384,9 @@ public class JSONObject implements Iterable<Object>, Cloneable {
         }
         @SuppressWarnings("unchecked")
         List<JSONObject> innerList = (List<JSONObject>) this.value;
+        if (innerList == null) {
+            throw new IllegalStateException("Cannot add a key-value object to an array.");
+        }
         for (JSONObject child : innerList) {
             if (child.getKey().equals(key)) {
                 Object previousValue = child.value;
@@ -3419,6 +3422,9 @@ public class JSONObject implements Iterable<Object>, Cloneable {
         }
         @SuppressWarnings("unchecked")
         List<JSONObject> innerList = (List<JSONObject>) this.value;
+        if (innerList == null) {
+            throw new IllegalStateException("Cannot add a key-value object to an array.");
+        }
         for (JSONObject child : innerList) {
             if (child.getKey().equals(key)) {
                 if (child.getValue() == null) {
@@ -3470,6 +3476,24 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      */
     public @NotNull JSONObject merge(@NotNull JSONObject... fields) {
         addAll(fields);
+        return this;
+    }
+
+    /**
+     * Adds all the inner key-value objects from another {@code JSONObject} to
+     * this node, and returns this node.
+     * @param other
+     * @return
+     */
+    public @NotNull JSONObject flatMerge(@NotNull JSONObject other) {
+        for (Object itemObj : other) {
+            if (itemObj instanceof JSONObject itemJson) {
+                add(itemJson);
+            }
+            else {
+                throw new IllegalArgumentException("Cannot flat merge a JSONObject which has non-JSONObject values.");
+            }
+        }
         return this;
     }
 
@@ -3664,9 +3688,10 @@ public class JSONObject implements Iterable<Object>, Cloneable {
      * </ul>
      *
      * @return a deep copy of this {@link JSONObject}
+     * @throws CloneNotSupportedException If any value in this {@code JSONObject} does not support cloning
      */
     @Override
-    public @NotNull JSONObject clone() {
+    public @NotNull JSONObject clone() throws CloneNotSupportedException {
         try {
             JSONObject cloned = (JSONObject) super.clone();
             if (value instanceof JSONObject valueJson) {
